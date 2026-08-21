@@ -1,0 +1,33 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno (contienen datos sensibles)
+.env
+.env.local
+.env.*.local
+
+# Prisma
+backend/generated/
+
+# Vite / build
+frontend/dist/
+frontend/dist-ssr/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Prisma Studio / skills auto-generados
+backend/.claude/
+backend/.windsurf/
+backend/.agents/
+backend/skills-lock.json
