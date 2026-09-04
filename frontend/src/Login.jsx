@@ -17,11 +17,16 @@ function Login({ onLoginSuccess }) {
     try {
       if (modo === 'registro') {
         await api.post('/auth/register', { nombre, email, password })
+        const response = await api.post('/auth/login', { email, password })
+        localStorage.setItem('token', response.data.token)
+        localStorage.setItem('usuario', JSON.stringify(response.data.usuario))
+        onLoginSuccess(response.data.usuario)
+      } else {
+        const response = await api.post('/auth/login', { email, password })
+        localStorage.setItem('token', response.data.token)
+        localStorage.setItem('usuario', JSON.stringify(response.data.usuario))
+        onLoginSuccess(response.data.usuario)
       }
-
-      const response = await api.post('/auth/login', { email, password })
-      localStorage.setItem('token', response.data.token)
-      onLoginSuccess(response.data.usuario)
     } catch (requestError) {
       setError(
         requestError.response?.data?.error ||

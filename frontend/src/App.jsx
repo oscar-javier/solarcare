@@ -1,23 +1,24 @@
-import { useState } from 'react'
-import Login from './Login'
+import { useState } from 'react';
+import Login from './Login';
+import Dashboard from './Dashboard';
 
 function App() {
-  const [usuario, setUsuario] = useState(null)
+  const [usuario, setUsuario] = useState(() => {
+    const usuarioGuardado = localStorage.getItem('usuario');
+    return usuarioGuardado ? JSON.parse(usuarioGuardado) : null;
+  });
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('usuario');
+    setUsuario(null);
+  };
 
   if (!usuario) {
-    return <Login onLoginSuccess={setUsuario} />
+    return <Login onLoginSuccess={setUsuario} />;
   }
 
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-900 px-4">
-      <div className="text-center">
-        <h1 className="mb-2 text-3xl font-bold text-white">
-          Bienvenido, {usuario.nombre}!
-        </h1>
-        <p className="text-slate-400">Dashboard proximamente...</p>
-      </div>
-    </div>
-  )
+  return <Dashboard usuario={usuario} onLogout={handleLogout} />;
 }
 
-export default App
+export default App;
