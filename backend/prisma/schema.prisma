@@ -28,6 +28,16 @@ model Sistema {
   usuarioId           Int
   usuario             Usuario   @relation(fields: [usuarioId], references: [id])
   lecturas            Lectura[]
+  bateria             Bateria?
+}
+
+model Bateria {
+  id               Int      @id @default(autoincrement())
+  capacidadKwh     Float
+  fechaInstalacion DateTime
+  createdAt        DateTime @default(now())
+  sistemaId        Int      @unique
+  sistema          Sistema  @relation(fields: [sistemaId], references: [id])
 }
 
 model Lectura {

@@ -24,6 +24,11 @@ function SistemaDetalle({ sistemaId, onVolver }) {
   const [mostrarClima, setMostrarClima] = useState(false);
   const [simulando, setSimulando] = useState(false);
   const [climaSeleccionado, setClimaSeleccionado] = useState(null);
+  const [bateria, setBateria] = useState(null);
+  const [mostrarFormBateria, setMostrarFormBateria] = useState(false);
+  const [capacidadKwh, setCapacidadKwh] = useState('');
+  const [fechaInstalacionBateria, setFechaInstalacionBateria] = useState('');
+  const [guardandoBateria, setGuardandoBateria] = useState(false);
 
   const cargarSistema = async () => {
     setCargando(true);
@@ -37,9 +42,46 @@ function SistemaDetalle({ sistemaId, onVolver }) {
     }
   };
 
+  const cargarBateria = async () => {
+    try {
+      const res = await api.get(`/sistemas/${sistemaId}/bateria`);
+      setBateria(res.data);
+      setCapacidadKwh(res.data.capacidadKwh.toString());
+      setFechaInstalacionBateria(res.data.fechaInstalacion.split('T')[0]);
+    } catch (err) {
+      if (err.response?.status === 404) {
+        setBateria(null);
+        setCapacidadKwh('');
+        setFechaInstalacionBateria('');
+      } else {
+        setError('No se pudo cargar la batería');
+      }
+    }
+  };
+
   useEffect(() => {
     cargarSistema();
+    cargarBateria();
   }, [sistemaId]);
+
+  const handleGuardarBateria = async (e) => {
+    e.preventDefault();
+    setGuardandoBateria(true);
+    setError('');
+
+    try {
+      const res = await api.post(`/sistemas/${sistemaId}/bateria`, {
+        capacidadKwh: parseFloat(capacidadKwh),
+        fechaInstalacion: fechaInstalacionBateria,
+      });
+      setMostrarFormBateria(false);
+      await cargarBateria();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Error al guardar la batería');
+    } finally {
+      setGuardandoBateria(false);
+    }
+  };
 
   const handleSimularDia = async (clima) => {
     setSimulando(true);
@@ -113,6 +155,73 @@ function SistemaDetalle({ sistemaId, onVolver }) {
               Instalado: {new Date(sistema.fechaInstalacion).toLocaleDateString()}
             </p>
           </div>
+        </div>
+
+        <div className="bg-slate-800 p-5 rounded-2xl mb-4">
+          <div className="flex justify-between items-start gap-4">
+            <div>
+              <h2 className="text-white font-semibold">Batería</h2>
+              {bateria ? (
+                <div className="mt-2">
+                  <p className="text-emerald-400 font-bold text-lg">
+                    {bateria.capacidadActualKwh} kWh actuales
+                  </p>
+                  <p className="text-slate-400 text-xs mt-1">
+                    De {bateria.capacidadKwh} kWh instalados ·{' '}
+                    {Math.round((1 - bateria.factorDegradacion) * 1000) / 10}% de degradación
+                  </p>
+                  <p className="text-slate-500 text-xs mt-1">
+                    Instalada: {new Date(bateria.fechaInstalacion).toLocaleDateString()}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-slate-400 text-sm mt-2">No hay una batería registrada.</p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setMostrarFormBateria(!mostrarFormBateria)}
+              className="text-xs text-sky-400 hover:underline whitespace-nowrap"
+            >
+              {mostrarFormBateria ? 'Cancelar' : bateria ? 'Editar batería' : 'Registrar batería'}
+            </button>
+          </div>
+
+          {mostrarFormBateria && (
+            <form onSubmit={handleGuardarBateria} className="mt-4 pt-4 border-t border-slate-700 space-y-3">
+              <div className="grid sm:grid-cols-2 gap-3">
+                <label className="text-slate-300 text-sm">
+                  Capacidad (kWh)
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={capacidadKwh}
+                    onChange={(e) => setCapacidadKwh(e.target.value)}
+                    required
+                    className="w-full mt-1 px-3 py-2 rounded-lg bg-slate-700 text-white outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </label>
+                <label className="text-slate-300 text-sm">
+                  Fecha de instalación
+                  <input
+                    type="date"
+                    value={fechaInstalacionBateria}
+                    onChange={(e) => setFechaInstalacionBateria(e.target.value)}
+                    required
+                    className="w-full mt-1 px-3 py-2 rounded-lg bg-slate-700 text-white outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </label>
+              </div>
+              <button
+                type="submit"
+                disabled={guardandoBateria}
+                className="px-4 py-2 rounded-lg bg-emerald-500 text-slate-900 font-semibold hover:bg-emerald-400 transition text-sm disabled:opacity-50"
+              >
+                {guardandoBateria ? 'Guardando...' : 'Guardar batería'}
+              </button>
+            </form>
+          )}
         </div>
 
         <div className="bg-slate-800 p-5 rounded-2xl mb-4">

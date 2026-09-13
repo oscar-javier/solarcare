@@ -189,6 +189,100 @@ app.delete('/api/sistemas/:id', verificarToken, async (req, res) => {
   }
 });
 
+// CREAR O ACTUALIZAR batería de un sistema (upsert)
+app.post('/api/sistemas/:id/bateria', verificarToken, async (req, res) => {
+  try {
+    const sistema = await prisma.sistema.findUnique({
+      where: { id: parseInt(req.params.id) },
+    });
+
+    if (!sistema || sistema.usuarioId !== req.usuario.id) {
+      return res.status(404).json({ error: 'Sistema no encontrado' });
+    }
+
+    const { capacidadKwh, fechaInstalacion } = req.body;
+
+    if (!capacidadKwh || !fechaInstalacion) {
+      return res.status(400).json({ error: 'Faltan campos requeridos' });
+    }
+
+    const bateria = await prisma.bateria.upsert({
+      where: { sistemaId: sistema.id },
+      update: {
+        capacidadKwh: parseFloat(capacidadKwh),
+        fechaInstalacion: new Date(fechaInstalacion),
+      },
+      create: {
+        capacidadKwh: parseFloat(capacidadKwh),
+        fechaInstalacion: new Date(fechaInstalacion),
+        sistemaId: sistema.id,
+      },
+    });
+
+    res.status(201).json(bateria);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al guardar la batería' });
+  }
+});
+
+// OBTENER batería de un sistema, con degradación calculada
+app.get('/api/sistemas/:id/bateria', verificarToken, async (req, res) => {
+  try {
+    const sistema = await prisma.sistema.findUnique({
+      where: { id: parseInt(req.params.id) },
+      include: { bateria: true },
+    });
+
+    if (!sistema || sistema.usuarioId !== req.usuario.id) {
+      return res.status(404).json({ error: 'Sistema no encontrado' });
+    }
+
+    if (!sistema.bateria) {
+      return res.status(404).json({ error: 'Este sistema no tiene batería registrada' });
+    }
+
+    // Degradación de baterías: ~2.5% anual (más rápida que la de paneles)
+    const TASA_DEGRADACION_ANUAL = 0.025;
+    const añosDesdeInstalacion =
+      (Date.now() - new Date(sistema.bateria.fechaInstalacion).getTime()) /
+      (1000 * 60 * 60 * 24 * 365.25);
+    const factorDegradacion = Math.max(
+      0,
+      1 - TASA_DEGRADACION_ANUAL * añosDesdeInstalacion
+    );
+    const capacidadActualKwh = sistema.bateria.capacidadKwh * factorDegradacion;
+
+    res.json({
+      ...sistema.bateria,
+      factorDegradacion: Math.round(factorDegradacion * 1000) / 1000,
+      capacidadActualKwh: Math.round(capacidadActualKwh * 100) / 100,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al obtener la batería' });
+  }
+});
+
+// ELIMINAR batería de un sistema
+app.delete('/api/sistemas/:id/bateria', verificarToken, async (req, res) => {
+  try {
+    const sistema = await prisma.sistema.findUnique({
+      where: { id: parseInt(req.params.id) },
+    });
+
+    if (!sistema || sistema.usuarioId !== req.usuario.id) {
+      return res.status(404).json({ error: 'Sistema no encontrado' });
+    }
+
+    await prisma.bateria.delete({ where: { sistemaId: sistema.id } });
+    res.status(204).send();
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al eliminar la batería' });
+  }
+});
+
 // SIMULAR DA - genera lecturas realistas de watts para un sistema
 app.post('/api/sistemas/:id/simular-dia', verificarToken, async (req, res) => {
   try {
