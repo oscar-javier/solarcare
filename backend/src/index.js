@@ -81,6 +81,42 @@ app.post('/api/auth/login', async (req, res) => {
     res.status(500).json({ error: 'Error al iniciar sesión' });
   }
 });
+
+app.get('/api/clima-actual', verificarToken, async (req, res) => {
+  try {
+    const lat = 15.5;
+    const lon = -88.03;
+
+    const respuesta = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=cloud_cover,precipitation,weather_code,temperature_2m`
+    );
+    const datos = await respuesta.json();
+    const { cloud_cover, precipitation, weather_code, temperature_2m } = datos.current;
+
+    let categoria;
+    if (precipitation > 0 || (weather_code >= 51 && weather_code <= 99)) {
+      categoria = 'rain';
+    } else if (cloud_cover > 70) {
+      categoria = 'cloudy';
+    } else if (cloud_cover > 30) {
+      categoria = 'partial_clouds';
+    } else {
+      categoria = 'clear';
+    }
+
+    res.json({
+      categoria,
+      temperatura: temperature_2m,
+      cloudCover: cloud_cover,
+      precipitation,
+      weatherCode: weather_code,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'No se pudo obtener el clima actual' });
+  }
+});
+
 // CREAR sistema
 app.post('/api/sistemas', verificarToken, async (req, res) => {
   try {
