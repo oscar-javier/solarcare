@@ -24,6 +24,21 @@ const FACTORES_CLIMA = {
   rain: 0.15,
 };
 
+const TASA_DEGRADACION_BATERIA_ANUAL = 0.025; // 2.5% anual, igual que el backend
+
+// Cálculo 100% local, sin llamadas al backend — nunca toca la batería real guardada en la BD
+function calcularDegradacionBateriaSimulada(capacidadKwh, fechaInstalacion) {
+  if (!capacidadKwh || !fechaInstalacion) return null;
+  const años =
+    (Date.now() - new Date(fechaInstalacion).getTime()) /
+    (1000 * 60 * 60 * 24 * 365.25);
+  const factorDegradacion = Math.max(0, 1 - TASA_DEGRADACION_BATERIA_ANUAL * años);
+  return {
+    factorDegradacion: Math.round(factorDegradacion * 1000) / 1000,
+    capacidadActualKwh: Math.round(capacidadKwh * factorDegradacion * 100) / 100,
+  };
+}
+
 // Estado exacto "ahora mismo" (con minutos), igual que en el Dashboard
 function calcularEstadoActual(sistema, categoriaClima) {
   const ahora = new Date();
@@ -60,13 +75,11 @@ function SistemaDetalle({ sistemaId, onVolver }) {
   const [simulando, setSimulando] = useState(false);
   const [climaSeleccionado, setClimaSeleccionado] = useState(null);
 
-  // Batería
-  const [bateria, setBateria] = useState(null);
-  const [cargandoBateria, setCargandoBateria] = useState(true);
-  const [mostrarFormBateria, setMostrarFormBateria] = useState(false);
-  const [capacidadKwh, setCapacidadKwh] = useState('');
-  const [fechaInstalacionBateria, setFechaInstalacionBateria] = useState('');
-  const [errorBateria, setErrorBateria] = useState('');
+  // Simulador de batería — 100% local, nunca se guarda ni afecta la batería real
+  const [simCapacidadKwh, setSimCapacidadKwh] = useState('10');
+  const [simFechaInstalacion, setSimFechaInstalacion] = useState(
+    new Date().toISOString().split('T')[0]
+  );
 
   // Reloj informativo (no restringe la simulación, solo da contexto)
   const [horaActual, setHoraActual] = useState(new Date());
@@ -104,21 +117,8 @@ function SistemaDetalle({ sistemaId, onVolver }) {
     }
   };
 
-  const cargarBateria = async () => {
-    setCargandoBateria(true);
-    try {
-      const res = await api.get(`/sistemas/${sistemaId}/bateria`);
-      setBateria(res.data);
-    } catch (err) {
-      setBateria(null);
-    } finally {
-      setCargandoBateria(false);
-    }
-  };
-
   useEffect(() => {
     cargarSistema();
-    cargarBateria();
   }, [sistemaId]);
 
   // Si el sistema no tiene ninguna lectura todavía y ya sabemos el clima real,
@@ -141,45 +141,6 @@ function SistemaDetalle({ sistemaId, onVolver }) {
       setError(err.response?.data?.error || 'Error al simular el día');
     } finally {
       setSimulando(false);
-    }
-  };
-
-  const handleEditarBateria = () => {
-    if (bateria) {
-      setCapacidadKwh(bateria.capacidadKwh.toString());
-      setFechaInstalacionBateria(bateria.fechaInstalacion.split('T')[0]);
-    }
-    setMostrarFormBateria(true);
-  };
-
-  const handleGuardarBateria = async (e) => {
-    e.preventDefault();
-    setErrorBateria('');
-    try {
-      await api.post(`/sistemas/${sistemaId}/bateria`, {
-        capacidadKwh: parseFloat(capacidadKwh),
-        fechaInstalacion: fechaInstalacionBateria,
-      });
-      setMostrarFormBateria(false);
-      setCapacidadKwh('');
-      setFechaInstalacionBateria('');
-      cargarBateria();
-    } catch (err) {
-      setErrorBateria(err.response?.data?.error || 'Error al guardar la batería');
-    }
-  };
-
-  const handleEliminarBateria = async () => {
-    const confirmado = window.confirm(
-      '¿Seguro que quieres eliminar la batería de este sistema?'
-    );
-    if (!confirmado) return;
-
-    try {
-      await api.delete(`/sistemas/${sistemaId}/bateria`);
-      setBateria(null);
-    } catch (err) {
-      setErrorBateria(err.response?.data?.error || 'Error al eliminar la batería');
     }
   };
 
@@ -253,8 +214,11 @@ function SistemaDetalle({ sistemaId, onVolver }) {
           </div>
         </div>
 
-        <div className="bg-slate-800 p-5 rounded-2xl mb-4">
+        <div className="bg-slate-800 p-5 rounded-2xl">
           <h2 className="text-white font-semibold mb-1">Simulación (6:00 a. m. – 6:00 p. m.)</h2>
+          <p className="text-slate-500 text-xs mb-4">
+            Herramienta de exploración manual — no modifica datos reales del sistema, solo genera escenarios hipotéticos de clima.
+          </p>
           {etiquetaClimaActual && (
             <p className="text-slate-400 text-xs mb-4">
               Clima simulado: {etiquetaClimaActual}
@@ -355,97 +319,54 @@ function SistemaDetalle({ sistemaId, onVolver }) {
           )}
         </div>
 
-        <div className="bg-slate-800 p-5 rounded-2xl">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-white font-semibold">🔋 Batería</h2>
-            {bateria && !mostrarFormBateria && (
-              <div className="flex gap-3">
-                <button
-                  onClick={handleEditarBateria}
-                  className="text-xs text-yellow-500 hover:underline"
-                >
-                  Editar
-                </button>
-                <button
-                  onClick={handleEliminarBateria}
-                  className="text-xs text-red-400 hover:underline"
-                >
-                  Eliminar
-                </button>
-              </div>
-            )}
-          </div>
+        <div className="bg-slate-800 p-5 rounded-2xl mt-4">
+          <h2 className="text-white font-semibold mb-1">🔋 Simulador de batería</h2>
+          <p className="text-slate-500 text-xs mb-4">
+            Explora "qué pasaría si" con distintas capacidades o fechas — es solo un cálculo local, nunca se guarda ni afecta las baterías reales que ves en "Ver detalles".
+          </p>
 
-          {errorBateria && <p className="text-red-400 text-sm mb-3">{errorBateria}</p>}
-
-          {cargandoBateria ? (
-            <p className="text-slate-400 text-sm">Cargando batería...</p>
-          ) : mostrarFormBateria ? (
-            <form onSubmit={handleGuardarBateria} className="space-y-3">
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div>
+              <label className="text-slate-400 text-xs block mb-1">Capacidad (kWh)</label>
               <input
                 type="number"
                 step="0.1"
-                placeholder="Capacidad (kWh)"
-                value={capacidadKwh}
-                onChange={(e) => setCapacidadKwh(e.target.value)}
-                required
-                className="w-full px-4 py-2 rounded-lg bg-slate-700 text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-yellow-500"
+                value={simCapacidadKwh}
+                onChange={(e) => setSimCapacidadKwh(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg bg-slate-700 text-white text-sm outline-none focus:ring-2 focus:ring-yellow-500"
               />
+            </div>
+            <div>
+              <label className="text-slate-400 text-xs block mb-1">Fecha de instalación</label>
               <input
                 type="date"
-                value={fechaInstalacionBateria}
-                onChange={(e) => setFechaInstalacionBateria(e.target.value)}
-                required
-                className="w-full px-4 py-2 rounded-lg bg-slate-700 text-white outline-none focus:ring-2 focus:ring-yellow-500"
+                value={simFechaInstalacion}
+                onChange={(e) => setSimFechaInstalacion(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg bg-slate-700 text-white text-sm outline-none focus:ring-2 focus:ring-yellow-500"
               />
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  className="flex-1 py-2 rounded-lg bg-yellow-500 text-slate-900 font-semibold hover:bg-yellow-400 transition"
-                >
-                  Guardar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMostrarFormBateria(false)}
-                  className="px-4 py-2 rounded-lg bg-slate-700 text-white hover:bg-slate-600 transition"
-                >
-                  Cancelar
-                </button>
-              </div>
-            </form>
-          ) : bateria ? (
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-slate-400 text-sm">
-                  Instalada: {new Date(bateria.fechaInstalacion).toLocaleDateString()}
-                </p>
-                <p className="text-slate-500 text-xs mt-1">
-                  Capacidad nominal: {bateria.capacidadKwh} kWh
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-yellow-500 font-bold text-lg">
-                  {bateria.capacidadActualKwh} kWh
-                </p>
-                <p className="text-slate-500 text-xs">
-                  {Math.round(bateria.factorDegradacion * 100)}% de su capacidad original
-                </p>
-              </div>
             </div>
-          ) : (
-            <div>
-              <p className="text-slate-400 text-sm mb-3">
-                Este sistema aún no tiene batería registrada.
-              </p>
-              <button
-                onClick={() => setMostrarFormBateria(true)}
-                className="px-4 py-2 rounded-lg bg-yellow-500 text-slate-900 font-semibold hover:bg-yellow-400 transition text-sm"
-              >
-                + Agregar batería
-              </button>
-            </div>
-          )}
+          </div>
+
+          {(() => {
+            const resultado = calcularDegradacionBateriaSimulada(
+              parseFloat(simCapacidadKwh),
+              simFechaInstalacion
+            );
+            if (!resultado) return null;
+            return (
+              <div className="bg-slate-900/60 rounded-xl p-3 flex justify-between items-center">
+                <p className="text-slate-400 text-xs">Resultado simulado</p>
+                <div className="text-right">
+                  <p className="text-yellow-500 font-bold text-lg">
+                    {resultado.capacidadActualKwh} kWh
+                  </p>
+                  <p className="text-slate-500 text-xs">
+                    {Math.round(resultado.factorDegradacion * 100)}% de su capacidad original
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
     </div>

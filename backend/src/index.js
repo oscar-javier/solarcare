@@ -225,8 +225,14 @@ app.delete('/api/sistemas/:id', verificarToken, async (req, res) => {
   }
 });
 
-// CREAR O ACTUALIZAR batería de un sistema (upsert)
-app.post('/api/sistemas/:id/bateria', verificarToken, async (req, res) => {
+// Lista fija de códigos válidos (simula los códigos de serie de baterías físicas reales)
+const CODIGOS_BATERIA_VALIDOS = [
+  'SC-BAT-1001', 'SC-BAT-1002', 'SC-BAT-1003', 'SC-BAT-1004', 'SC-BAT-1005',
+  'SC-BAT-1006', 'SC-BAT-1007', 'SC-BAT-1008', 'SC-BAT-1009', 'SC-BAT-1010',
+];
+
+// AGREGAR batería (requiere código de activación válido y no usado antes)
+app.post('/api/sistemas/:id/baterias', verificarToken, async (req, res) => {
   try {
     const sistema = await prisma.sistema.findUnique({
       where: { id: parseInt(req.params.id) },
@@ -236,21 +242,26 @@ app.post('/api/sistemas/:id/bateria', verificarToken, async (req, res) => {
       return res.status(404).json({ error: 'Sistema no encontrado' });
     }
 
-    const { capacidadKwh, fechaInstalacion } = req.body;
+    const { codigoActivacion, capacidadKwh, fechaInstalacion } = req.body;
 
-    if (!capacidadKwh || !fechaInstalacion) {
+    if (!codigoActivacion || !capacidadKwh || !fechaInstalacion) {
       return res.status(400).json({ error: 'Faltan campos requeridos' });
     }
 
-    const bateria = await prisma.bateria.upsert({
-      where: { sistemaId: sistema.id },
-      update: {
+    if (!CODIGOS_BATERIA_VALIDOS.includes(codigoActivacion)) {
+      return res.status(400).json({ error: 'Código de activación inválido' });
+    }
+
+    const yaUsado = await prisma.bateria.findUnique({ where: { codigoActivacion } });
+    if (yaUsado) {
+      return res.status(400).json({ error: 'Este código ya fue utilizado' });
+    }
+
+    const bateria = await prisma.bateria.create({
+      data: {
         capacidadKwh: parseFloat(capacidadKwh),
         fechaInstalacion: new Date(fechaInstalacion),
-      },
-      create: {
-        capacidadKwh: parseFloat(capacidadKwh),
-        fechaInstalacion: new Date(fechaInstalacion),
+        codigoActivacion,
         sistemaId: sistema.id,
       },
     });
@@ -258,12 +269,12 @@ app.post('/api/sistemas/:id/bateria', verificarToken, async (req, res) => {
     res.status(201).json(bateria);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Error al guardar la batería' });
+    res.status(500).json({ error: 'Error al agregar la batería' });
   }
 });
 
-// OBTENER batería de un sistema, con degradación calculada
-app.get('/api/sistemas/:id/bateria', verificarToken, async (req, res) => {
+// LISTAR baterías de un sistema, con degradación individual y capacidad total
+app.get('/api/sistemas/:id/baterias', verificarToken, async (req, res) => {
   try {
     const sistema = await prisma.sistema.findUnique({
       where: { id: parseInt(req.params.id) },
@@ -274,34 +285,37 @@ app.get('/api/sistemas/:id/bateria', verificarToken, async (req, res) => {
       return res.status(404).json({ error: 'Sistema no encontrado' });
     }
 
-    if (!sistema.bateria) {
-      return res.status(404).json({ error: 'Este sistema no tiene batería registrada' });
-    }
-
-    // Degradación de baterías: ~2.5% anual (más rápida que la de paneles)
     const TASA_DEGRADACION_ANUAL = 0.025;
-    const añosDesdeInstalacion =
-      (Date.now() - new Date(sistema.bateria.fechaInstalacion).getTime()) /
-      (1000 * 60 * 60 * 24 * 365.25);
-    const factorDegradacion = Math.max(
-      0,
-      1 - TASA_DEGRADACION_ANUAL * añosDesdeInstalacion
-    );
-    const capacidadActualKwh = sistema.bateria.capacidadKwh * factorDegradacion;
-
-    res.json({
-      ...sistema.bateria,
-      factorDegradacion: Math.round(factorDegradacion * 1000) / 1000,
-      capacidadActualKwh: Math.round(capacidadActualKwh * 100) / 100,
+    const bateriasRegistradas = Array.isArray(sistema.bateria)
+      ? sistema.bateria
+      : sistema.bateria
+        ? [sistema.bateria]
+        : [];
+    const baterias = bateriasRegistradas.map((b) => {
+      const años =
+        (Date.now() - new Date(b.fechaInstalacion).getTime()) /
+        (1000 * 60 * 60 * 24 * 365.25);
+      const factorDegradacion = Math.max(0, 1 - TASA_DEGRADACION_ANUAL * años);
+      return {
+        ...b,
+        factorDegradacion: Math.round(factorDegradacion * 1000) / 1000,
+        capacidadActualKwh: Math.round(b.capacidadKwh * factorDegradacion * 100) / 100,
+      };
     });
+
+    const capacidadTotalActual = Math.round(
+      baterias.reduce((suma, b) => suma + b.capacidadActualKwh, 0) * 100
+    ) / 100;
+
+    res.json({ baterias, capacidadTotalActual });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Error al obtener la batería' });
+    res.status(500).json({ error: 'Error al obtener las baterías' });
   }
 });
 
-// ELIMINAR batería de un sistema
-app.delete('/api/sistemas/:id/bateria', verificarToken, async (req, res) => {
+// ELIMINAR una batería específica
+app.delete('/api/sistemas/:id/baterias/:bateriaId', verificarToken, async (req, res) => {
   try {
     const sistema = await prisma.sistema.findUnique({
       where: { id: parseInt(req.params.id) },
@@ -311,7 +325,7 @@ app.delete('/api/sistemas/:id/bateria', verificarToken, async (req, res) => {
       return res.status(404).json({ error: 'Sistema no encontrado' });
     }
 
-    await prisma.bateria.delete({ where: { sistemaId: sistema.id } });
+    await prisma.bateria.delete({ where: { id: parseInt(req.params.bateriaId) } });
     res.status(204).send();
   } catch (error) {
     console.error(error);

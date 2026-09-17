@@ -94,6 +94,11 @@ function Dashboard({ usuario, onLogout, onIrASimular }) {
 
   const [detalleAbiertoId, setDetalleAbiertoId] = useState(null);
   const [bateriasPorSistema, setBateriasPorSistema] = useState({});
+  const [mostrarFormBateria, setMostrarFormBateria] = useState(null); // id del sistema con el form abierto
+  const [codigoActivacion, setCodigoActivacion] = useState('');
+  const [capacidadBateria, setCapacidadBateria] = useState('');
+  const [fechaBateria, setFechaBateria] = useState('');
+  const [errorBateria, setErrorBateria] = useState('');
 
   const [climaReal, setClimaReal] = useState(null);
   const [cargandoClimaReal, setCargandoClimaReal] = useState(true);
@@ -207,6 +212,18 @@ function Dashboard({ usuario, onLogout, onIrASimular }) {
     }
   };
 
+  const cargarBaterias = async (sistemaId) => {
+    try {
+      const res = await api.get(`/sistemas/${sistemaId}/baterias`);
+      setBateriasPorSistema((prev) => ({ ...prev, [sistemaId]: res.data }));
+    } catch (err) {
+      setBateriasPorSistema((prev) => ({
+        ...prev,
+        [sistemaId]: { baterias: [], capacidadTotalActual: 0 },
+      }));
+    }
+  };
+
   const handleVerDetalles = async (sistema) => {
     if (detalleAbiertoId === sistema.id) {
       setDetalleAbiertoId(null);
@@ -215,12 +232,37 @@ function Dashboard({ usuario, onLogout, onIrASimular }) {
     setDetalleAbiertoId(sistema.id);
 
     if (!(sistema.id in bateriasPorSistema)) {
-      try {
-        const res = await api.get(`/sistemas/${sistema.id}/bateria`);
-        setBateriasPorSistema((prev) => ({ ...prev, [sistema.id]: res.data }));
-      } catch (err) {
-        setBateriasPorSistema((prev) => ({ ...prev, [sistema.id]: null }));
-      }
+      cargarBaterias(sistema.id);
+    }
+  };
+
+  const handleAgregarBateria = async (e, sistemaId) => {
+    e.preventDefault();
+    setErrorBateria('');
+    try {
+      await api.post(`/sistemas/${sistemaId}/baterias`, {
+        codigoActivacion,
+        capacidadKwh: parseFloat(capacidadBateria),
+        fechaInstalacion: fechaBateria,
+      });
+      setCodigoActivacion('');
+      setCapacidadBateria('');
+      setFechaBateria('');
+      setMostrarFormBateria(null);
+      cargarBaterias(sistemaId);
+    } catch (err) {
+      setErrorBateria(err.response?.data?.error || 'Error al agregar la batería');
+    }
+  };
+
+  const handleEliminarBateria = async (sistemaId, bateriaId) => {
+    const confirmado = window.confirm('¿Eliminar esta batería del sistema?');
+    if (!confirmado) return;
+    try {
+      await api.delete(`/sistemas/${sistemaId}/baterias/${bateriaId}`);
+      cargarBaterias(sistemaId);
+    } catch (err) {
+      setErrorBateria(err.response?.data?.error || 'Error al eliminar la batería');
     }
   };
 
@@ -451,19 +493,105 @@ function Dashboard({ usuario, onLogout, onIrASimular }) {
                       )}
 
                       <div>
-                        <p className="text-white text-sm font-medium mb-1">🔋 Batería</p>
+                        <div className="flex justify-between items-center mb-2">
+                          <p className="text-white text-sm font-medium">🔋 Baterías</p>
+                          <button
+                            onClick={() =>
+                              setMostrarFormBateria(
+                                mostrarFormBateria === sistema.id ? null : sistema.id
+                              )
+                            }
+                            className="text-xs text-yellow-500 hover:underline"
+                          >
+                            {mostrarFormBateria === sistema.id ? 'Cancelar' : '+ Agregar batería'}
+                          </button>
+                        </div>
+
+                        {mostrarFormBateria === sistema.id && (
+                          <form
+                            onSubmit={(e) => handleAgregarBateria(e, sistema.id)}
+                            className="bg-slate-900/60 rounded-xl p-3 mb-3 space-y-2"
+                          >
+                            <input
+                              type="text"
+                              placeholder="Código de activación (ej. SC-BAT-1001)"
+                              value={codigoActivacion}
+                              onChange={(e) => setCodigoActivacion(e.target.value)}
+                              required
+                              className="w-full px-3 py-1.5 rounded-lg bg-slate-700 text-white placeholder-slate-400 text-sm outline-none focus:ring-2 focus:ring-yellow-500"
+                            />
+                            <input
+                              type="number"
+                              step="0.1"
+                              placeholder="Capacidad (kWh)"
+                              value={capacidadBateria}
+                              onChange={(e) => setCapacidadBateria(e.target.value)}
+                              required
+                              className="w-full px-3 py-1.5 rounded-lg bg-slate-700 text-white placeholder-slate-400 text-sm outline-none focus:ring-2 focus:ring-yellow-500"
+                            />
+                            <input
+                              type="date"
+                              value={fechaBateria}
+                              onChange={(e) => setFechaBateria(e.target.value)}
+                              required
+                              className="w-full px-3 py-1.5 rounded-lg bg-slate-700 text-white text-sm outline-none focus:ring-2 focus:ring-yellow-500"
+                            />
+                            {errorBateria && (
+                              <p className="text-red-400 text-xs">{errorBateria}</p>
+                            )}
+                            <button
+                              type="submit"
+                              className="w-full py-1.5 rounded-lg bg-yellow-500 text-slate-900 font-semibold text-sm hover:bg-yellow-400 transition"
+                            >
+                              Activar batería
+                            </button>
+                          </form>
+                        )}
+
                         {bateria === undefined ? (
                           <p className="text-slate-400 text-xs">Cargando...</p>
-                        ) : bateria ? (
-                          <p className="text-slate-400 text-xs">
-                            {bateria.capacidadActualKwh} kWh actuales de{' '}
-                            {bateria.capacidadKwh} kWh nominales (
-                            {Math.round(bateria.factorDegradacion * 100)}%)
+                        ) : bateria.baterias.length === 0 ? (
+                          <p className="text-slate-500 text-xs">
+                            Sin baterías registradas.
                           </p>
                         ) : (
-                          <p className="text-slate-500 text-xs">
-                            Sin batería registrada. Agrégala desde "Simular día".
-                          </p>
+                          <div className="space-y-1.5">
+                            {bateria.baterias.map((b) => (
+                              <div
+                                key={b.id}
+                                className="flex justify-between items-center text-xs bg-slate-900/40 rounded-lg px-3 py-2"
+                              >
+                                <div>
+                                  <p className="text-slate-300">{b.codigoActivacion}</p>
+                                  <p className="text-slate-500">
+                                    {new Date(b.fechaInstalacion).toLocaleDateString()}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <div className="text-right">
+                                    <p className="text-yellow-500 font-semibold">
+                                      {b.capacidadActualKwh} / {b.capacidadKwh} kWh
+                                    </p>
+                                    <p className="text-slate-500">
+                                      {Math.round(b.factorDegradacion * 100)}% de su capacidad original
+                                    </p>
+                                  </div>
+                                  <button
+                                    onClick={() => handleEliminarBateria(sistema.id, b.id)}
+                                    className="text-red-400 hover:underline"
+                                  >
+                                    Eliminar
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                            <p className="text-slate-400 text-xs pt-1">
+                              Capacidad total actual:{' '}
+                              <span className="text-white font-semibold">
+                                {bateria.capacidadTotalActual} kWh
+                              </span>
+                            </p>
+                          </div>
                         )}
                       </div>
                     </div>
