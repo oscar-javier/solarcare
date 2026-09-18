@@ -147,10 +147,27 @@ app.get('/api/clima-actual', verificarToken, async (req, res) => {
     }
 
     const respuesta = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=cloud_cover,precipitation,weather_code,temperature_2m`
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=cloud_cover,precipitation,weather_code,temperature_2m,relative_humidity_2m,wind_speed_10m&hourly=precipitation_probability&forecast_days=1`
     );
     const datos = await respuesta.json();
-    const { cloud_cover, precipitation, weather_code, temperature_2m } = datos.current;
+    const {
+      cloud_cover,
+      precipitation,
+      weather_code,
+      temperature_2m,
+      relative_humidity_2m,
+      wind_speed_10m,
+      time: currentTime,
+    } = datos.current;
+    const indiceHora = datos.hourly?.time?.reduce((indiceMasCercano, hora, indice) => {
+      if (!currentTime) return indiceMasCercano;
+      const diferencia = Math.abs(new Date(hora) - new Date(currentTime));
+      const diferenciaActual = Math.abs(
+        new Date(datos.hourly.time[indiceMasCercano]) - new Date(currentTime)
+      );
+      return diferencia < diferenciaActual ? indice : indiceMasCercano;
+    }, 0);
+    const precipitationProbability = datos.hourly?.precipitation_probability?.[indiceHora] ?? null;
 
     let categoria;
     if (precipitation > 0 || (weather_code >= 51 && weather_code <= 99)) categoria = 'rain';
@@ -164,6 +181,9 @@ app.get('/api/clima-actual', verificarToken, async (req, res) => {
       cloudCover: cloud_cover,
       precipitation,
       weatherCode: weather_code,
+      precipitationProbability,
+      humidity: relative_humidity_2m,
+      windSpeed: wind_speed_10m,
       ubicacion: nombreResuelto,
       ubicacionEncontrada,
     });

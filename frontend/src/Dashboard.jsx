@@ -8,6 +8,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
+  ReferenceDot,
 } from 'recharts';
 import api from './api';
 import CiudadSelector from './CiudadSelector';
@@ -478,6 +479,11 @@ function Dashboard({ usuario, onLogout, onIrASimular }) {
                 horaDecimalActual >= 6 && horaDecimalActual <= 18
                   ? `${Math.round(horaDecimalActual)}:00`
                   : null;
+              const puntoEficienciaActual =
+                horaEtiquetaActual && curvaDelDia.length
+                  ? curvaDelDia.find((punto) => punto.hora === horaEtiquetaActual) ?? null
+                  : null;
+              const eficienciaActual = puntoEficienciaActual?.eficiencia ?? null;
               return (
                 <div key={sistema.id} className="bg-slate-800 p-5 rounded-2xl">
                   <div className="flex justify-between items-center">
@@ -550,6 +556,26 @@ function Dashboard({ usuario, onLogout, onIrASimular }) {
                               <p className="text-slate-500 text-xs">{horaTexto}</p>
                             </div>
                           </div>
+                          <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-slate-700 text-center">
+                            <div>
+                              <p className="text-slate-500 text-[11px]">Prob. precipitación</p>
+                              <p className="text-white text-sm font-semibold">
+                                {climaDeEsteSistema.precipitationProbability ?? '--'}%
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-slate-500 text-[11px]">Humedad</p>
+                              <p className="text-white text-sm font-semibold">
+                                {climaDeEsteSistema.humidity ?? '--'}%
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-slate-500 text-[11px]">Viento</p>
+                              <p className="text-white text-sm font-semibold">
+                                {climaDeEsteSistema.windSpeed ?? '--'} km/h
+                              </p>
+                            </div>
+                          </div>
                         </div>
                       ) : (
                         <p className="text-slate-500 text-sm">
@@ -613,6 +639,24 @@ function Dashboard({ usuario, onLogout, onIrASimular }) {
                                   stroke="#38bdf8"
                                   strokeDasharray="4 4"
                                   label={{ value: 'Ahora', position: 'top', fill: '#38bdf8', fontSize: 11 }}
+                                />
+                              )}
+                              {eficienciaActual !== null && (
+                                <ReferenceDot
+                                  x={horaEtiquetaActual}
+                                  y={eficienciaActual}
+                                  yAxisId="eficiencia"
+                                  r={7}
+                                  fill="#22d3ee"
+                                  stroke="#f8fafc"
+                                  strokeWidth={2.5}
+                                  label={{
+                                    value: `${eficienciaActual}%`,
+                                    position: 'top',
+                                    fill: '#f8fafc',
+                                    fontSize: 10,
+                                    offset: 12,
+                                  }}
                                 />
                               )}
                               <Line
