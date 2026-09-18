@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import api from './api';
+import CiudadSelector from './CiudadSelector';
 
 const OPCIONES_CLIMA = [
   { valor: 'clear', etiqueta: '☀️ Despejado' },
@@ -88,13 +89,20 @@ function SistemaDetalle({ sistemaId, onVolver }) {
     return () => clearInterval(intervalo);
   }, []);
 
-  // Clima real de hoy, para auto-simular la primera vez y mostrar contexto
+  // Clima real de la ubicación del sistema (para auto-simular y mostrar contexto)
   const [climaReal, setClimaReal] = useState(null);
 
   useEffect(() => {
+    if (!sistema) return;
     const cargarClimaReal = async () => {
       try {
-        const res = await api.get('/clima-actual');
+        const res = await api.get('/clima-actual', {
+          params: {
+            ubicacion: sistema.ubicacion,
+            latitud: sistema.latitud,
+            longitud: sistema.longitud,
+          },
+        });
         setClimaReal(res.data);
       } catch (err) {
         setClimaReal(null);
@@ -103,7 +111,42 @@ function SistemaDetalle({ sistemaId, onVolver }) {
     cargarClimaReal();
     const intervalo = setInterval(cargarClimaReal, 10 * 60 * 1000);
     return () => clearInterval(intervalo);
+  }, [sistema?.ubicacion]);
+
+  // Buscador de OTRA ciudad, para simular con el clima real de un lugar distinto
+  const [busquedaUbicacion, setBusquedaUbicacion] = useState('');
+  const [climaBuscado, setClimaBuscado] = useState(null);
+  const [buscandoClima, setBuscandoClima] = useState(false);
+  const [errorBusqueda, setErrorBusqueda] = useState('');
+  const [ciudadesHonduras, setCiudadesHonduras] = useState([]);
+
+  useEffect(() => {
+    api
+      .get('/ciudades-honduras')
+      .then((res) => setCiudadesHonduras(res.data))
+      .catch(() => setCiudadesHonduras([]));
   }, []);
+
+  const handleBuscarOtraCiudad = async (e) => {
+    e.preventDefault();
+    setBuscandoClima(true);
+    setErrorBusqueda('');
+    setClimaBuscado(null);
+    try {
+      const res = await api.get('/clima-actual', {
+        params: { ubicacion: busquedaUbicacion },
+      });
+      if (!res.data.ubicacionEncontrada) {
+        setErrorBusqueda(`No se encontró "${busquedaUbicacion}", intenta con otro nombre`);
+      } else {
+        setClimaBuscado(res.data);
+      }
+    } catch (err) {
+      setErrorBusqueda('Error al buscar el clima de esa ubicación');
+    } finally {
+      setBuscandoClima(false);
+    }
+  };
 
   const cargarSistema = async () => {
     setCargando(true);
@@ -229,7 +272,9 @@ function SistemaDetalle({ sistemaId, onVolver }) {
             <div className="bg-slate-900/60 rounded-xl p-3 mb-4">
               <div className="flex justify-between items-center mb-1">
                 <div>
-                  <p className="text-slate-400 text-xs">Clima real ahora</p>
+                  <p className="text-slate-400 text-xs">
+                    Clima real ahora · {climaReal.ubicacion}
+                  </p>
                   <p className="text-white text-sm font-semibold">
                     {OPCIONES_CLIMA.find((o) => o.valor === climaReal.categoria)?.etiqueta}{' '}
                     · {climaReal.temperatura}°C
@@ -253,7 +298,49 @@ function SistemaDetalle({ sistemaId, onVolver }) {
           )}
 
           <div className="mb-4 pb-4 border-b border-slate-700">
-            <p className="text-slate-300 text-sm mb-2">¿Qué clima quieres simular?</p>
+            <p className="text-slate-300 text-sm mb-2">
+              Simular con el clima real de otra ciudad
+            </p>
+            <form onSubmit={handleBuscarOtraCiudad} className="flex gap-2 mb-2">
+              <div className="flex-1">
+                <CiudadSelector
+                  ciudades={ciudadesHonduras}
+                  value={busquedaUbicacion}
+                  onChange={setBusquedaUbicacion}
+                  placeholder="Escribe para buscar una ciudad..."
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={buscandoClima || !busquedaUbicacion}
+                className="px-3 py-1.5 rounded-lg bg-slate-700 text-white text-sm hover:bg-slate-600 transition disabled:opacity-50"
+              >
+                {buscandoClima ? 'Buscando...' : 'Buscar'}
+              </button>
+            </form>
+            {errorBusqueda && (
+              <p className="text-red-400 text-xs mb-2">{errorBusqueda}</p>
+            )}
+            {climaBuscado && (
+              <div className="bg-slate-900/60 rounded-lg p-2.5 flex justify-between items-center mb-2">
+                <p className="text-slate-300 text-sm">
+                  {climaBuscado.ubicacion}:{' '}
+                  {OPCIONES_CLIMA.find((o) => o.valor === climaBuscado.categoria)?.etiqueta}{' '}
+                  · {climaBuscado.temperatura}°C
+                </p>
+                <button
+                  onClick={() => handleSimularDia(climaBuscado.categoria)}
+                  disabled={simulando}
+                  className="text-xs text-yellow-500 hover:underline disabled:opacity-50"
+                >
+                  Simular con este clima
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="mb-4 pb-4 border-b border-slate-700">
+            <p className="text-slate-300 text-sm mb-2">O elige un clima manualmente</p>
             <div className="flex flex-wrap gap-2">
               {OPCIONES_CLIMA.map((opcion) => {
                 const seleccionado = opcion.valor === climaSeleccionado;
@@ -271,7 +358,7 @@ function SistemaDetalle({ sistemaId, onVolver }) {
                   >
                     {opcion.etiqueta}
                     {esClimaReal && (
-                      <span className="ml-1 text-[10px] opacity-75">(hoy)</span>
+                      <span className="ml-1 text-[10px] opacity-75">(hoy en {sistema.ubicacion})</span>
                     )}
                   </button>
                 );

@@ -82,10 +82,69 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
+async function geocodificarUbicacion(nombre) {
+  try {
+    const resp = await fetch(
+      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(nombre)}&count=1&language=es&format=json`
+    );
+    const datos = await resp.json();
+    if (datos.results && datos.results.length > 0) {
+      const r = datos.results[0];
+      return {
+        latitude: r.latitude,
+        longitude: r.longitude,
+        nombreResuelto: `${r.name}${r.admin1 ? ', ' + r.admin1 : ''}`,
+      };
+    }
+    return null;
+  } catch (err) {
+    return null;
+  }
+}
+
+app.get('/api/ciudades-honduras', verificarToken, async (req, res) => {
+  try {
+    const ciudades = await prisma.ciudadHonduras.findMany({
+      orderBy: { nombre: 'asc' },
+    });
+    res.json(ciudades);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al obtener las ciudades' });
+  }
+});
+
 app.get('/api/clima-actual', verificarToken, async (req, res) => {
   try {
-    const lat = 15.5;
-    const lon = -88.03;
+    const ubicacionSolicitada = req.query.ubicacion;
+    let lat = 15.5, lon = -88.03, nombreResuelto = 'San Pedro Sula';
+    let ubicacionEncontrada = true;
+    const latitudSolicitada = Number(req.query.latitud);
+    const longitudSolicitada = Number(req.query.longitud);
+
+    if (Number.isFinite(latitudSolicitada) && Number.isFinite(longitudSolicitada)) {
+      lat = latitudSolicitada;
+      lon = longitudSolicitada;
+      nombreResuelto = ubicacionSolicitada || nombreResuelto;
+    } else if (ubicacionSolicitada) {
+      const ciudad = await prisma.ciudadHonduras.findFirst({
+        where: { nombre: ubicacionSolicitada },
+      });
+      if (ciudad) {
+        lat = ciudad.latitud;
+        lon = ciudad.longitud;
+        nombreResuelto = ciudad.nombre;
+      } else {
+        const geo = await geocodificarUbicacion(ubicacionSolicitada);
+        if (geo) {
+          lat = geo.latitude;
+          lon = geo.longitude;
+          nombreResuelto = geo.nombreResuelto;
+        } else {
+          ubicacionEncontrada = false;
+        }
+      }
+    }
 
     const respuesta = await fetch(
       `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=cloud_cover,precipitation,weather_code,temperature_2m`
@@ -94,15 +153,10 @@ app.get('/api/clima-actual', verificarToken, async (req, res) => {
     const { cloud_cover, precipitation, weather_code, temperature_2m } = datos.current;
 
     let categoria;
-    if (precipitation > 0 || (weather_code >= 51 && weather_code <= 99)) {
-      categoria = 'rain';
-    } else if (cloud_cover > 70) {
-      categoria = 'cloudy';
-    } else if (cloud_cover > 30) {
-      categoria = 'partial_clouds';
-    } else {
-      categoria = 'clear';
-    }
+    if (precipitation > 0 || (weather_code >= 51 && weather_code <= 99)) categoria = 'rain';
+    else if (cloud_cover > 70) categoria = 'cloudy';
+    else if (cloud_cover > 30) categoria = 'partial_clouds';
+    else categoria = 'clear';
 
     res.json({
       categoria,
@@ -110,6 +164,8 @@ app.get('/api/clima-actual', verificarToken, async (req, res) => {
       cloudCover: cloud_cover,
       precipitation,
       weatherCode: weather_code,
+      ubicacion: nombreResuelto,
+      ubicacionEncontrada,
     });
   } catch (error) {
     console.error(error);
@@ -120,7 +176,7 @@ app.get('/api/clima-actual', verificarToken, async (req, res) => {
 // CREAR sistema
 app.post('/api/sistemas', verificarToken, async (req, res) => {
   try {
-    const { nombre, ubicacion, capacidadInstalada, fechaInstalacion } = req.body;
+    const { nombre, ubicacion, latitud, longitud, capacidadInstalada, fechaInstalacion } = req.body;
 
     if (!nombre || !ubicacion || !capacidadInstalada || !fechaInstalacion) {
       return res.status(400).json({ error: 'Faltan campos requeridos' });
@@ -130,6 +186,8 @@ app.post('/api/sistemas', verificarToken, async (req, res) => {
       data: {
         nombre,
         ubicacion,
+        ...(latitud != null && { latitud: parseFloat(latitud) }),
+        ...(longitud != null && { longitud: parseFloat(longitud) }),
         capacidadInstalada: parseFloat(capacidadInstalada),
         fechaInstalacion: new Date(fechaInstalacion),
         usuarioId: req.usuario.id,
@@ -187,13 +245,15 @@ app.put('/api/sistemas/:id', verificarToken, async (req, res) => {
       return res.status(404).json({ error: 'Sistema no encontrado' });
     }
 
-    const { nombre, ubicacion, capacidadInstalada, fechaInstalacion } = req.body;
+    const { nombre, ubicacion, latitud, longitud, capacidadInstalada, fechaInstalacion } = req.body;
 
     const sistema = await prisma.sistema.update({
       where: { id: parseInt(req.params.id) },
       data: {
         ...(nombre && { nombre }),
         ...(ubicacion && { ubicacion }),
+        ...(latitud != null && { latitud: parseFloat(latitud) }),
+        ...(longitud != null && { longitud: parseFloat(longitud) }),
         ...(capacidadInstalada && { capacidadInstalada: parseFloat(capacidadInstalada) }),
         ...(fechaInstalacion && { fechaInstalacion: new Date(fechaInstalacion) }),
       },
@@ -389,11 +449,8 @@ app.post('/api/sistemas/:id/simular-dia', verificarToken, async (req, res) => {
       const anguloSolar = Math.PI * ((hora - 6) / 12);
       const factorSolar = Math.max(0, Math.sin(anguloSolar));
 
-      // Pequeña variación aleatoria (+/- 5%) para que no se vea artificial
-      const variacion = 0.95 + Math.random() * 0.1;
-
       const watts =
-        capacidadWatts * factorSolar * factorClima * factorDegradacion * variacion;
+        capacidadWatts * factorSolar * factorClima * factorDegradacion;
 
       const timestamp = new Date(hoy);
       timestamp.setHours(hora, 0, 0, 0);

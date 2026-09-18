@@ -24,8 +24,8 @@ from config import (
     S3_BUCKET,
     S3_PREFIX_TEMPLATE,
     SYSTEM_IDS,
-    YEAR,
-    MONTH,
+    YEAR_START,
+    YEAR_END,
     HOUR_START,
     HOUR_END,
     RAW_TIMESTAMP_COL,
@@ -86,18 +86,19 @@ def filter_daylight_window(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def extract_system(s3_client, system_id: int) -> pd.DataFrame:
-    print(f"[system {system_id}] listando archivos de {YEAR}-{MONTH:02d}...")
-    keys = list_month_keys(s3_client, system_id, YEAR, MONTH)
-
     frames = []
-    for key in keys:
-        try:
-            df = read_csv_from_s3(s3_client, key)
-            df_filtered = filter_daylight_window(df)
-            if not df_filtered.empty:
-                frames.append(df_filtered)
-        except Exception as exc:
-            print(f"  [system {system_id}] error leyendo {key}: {exc}")
+    for year in range(YEAR_START, YEAR_END + 1):
+        for month in range(1, 13):
+            print(f"[system {system_id}] listando archivos de {year}-{month:02d}...")
+            keys = list_month_keys(s3_client, system_id, year, month)
+            for key in keys:
+                try:
+                    df = read_csv_from_s3(s3_client, key)
+                    df_filtered = filter_daylight_window(df)
+                    if not df_filtered.empty:
+                        frames.append(df_filtered)
+                except Exception as exc:
+                    print(f"  [system {system_id}] error leyendo {key}: {exc}")
 
     if not frames:
         return pd.DataFrame()
@@ -119,7 +120,7 @@ def main():
         if df.empty:
             continue
 
-        out_path = f"{OUTPUT_DIR}/raw_{system_id}.csv"
+        out_path = f"{OUTPUT_DIR}/raw_{system_id}_{YEAR_START}_{YEAR_END}.csv"
         df.to_csv(out_path, index=False)
         print(f"  [system {system_id}] guardado -> {out_path}\n")
 

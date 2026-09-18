@@ -10,6 +10,7 @@ import {
   ReferenceLine,
 } from 'recharts';
 import api from './api';
+import CiudadSelector from './CiudadSelector';
 
 const OPCIONES_CLIMA = [
   { valor: 'clear', etiqueta: '☀️ Despejado' },
@@ -27,17 +28,12 @@ const FACTORES_CLIMA = {
 
 const HORAS_DEL_DIA = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
 
-// Curva del día calculada de forma determinista (sin variación aleatoria),
-// usada solo para el vistazo rápido de "Ver detalles" con el clima real de hoy.
 function calcularCurvaDelDia(sistema, categoriaClima) {
   const factorClima = FACTORES_CLIMA[categoriaClima] ?? FACTORES_CLIMA.clear;
-
-  const TASA_DEGRADACION_ANUAL = 0.006;
   const añosDesdeInstalacion =
     (Date.now() - new Date(sistema.fechaInstalacion).getTime()) /
     (1000 * 60 * 60 * 24 * 365.25);
-  const factorDegradacion = Math.max(0, 1 - TASA_DEGRADACION_ANUAL * añosDesdeInstalacion);
-
+  const factorDegradacion = Math.max(0, 1 - 0.006 * añosDesdeInstalacion);
   const capacidadWatts = sistema.capacidadInstalada * 1000;
 
   return HORAS_DEL_DIA.map((hora) => {
@@ -47,37 +43,56 @@ function calcularCurvaDelDia(sistema, categoriaClima) {
     return {
       hora: `${hora}:00`,
       watts: Math.round(watts),
+      eficiencia: Math.round((watts / capacidadWatts) * 1000) / 10,
     };
   });
 }
 
-// Estado exacto "ahora mismo" (con minutos), usado en el indicador junto a la gráfica
 function calcularEstadoActual(sistema, categoriaClima) {
   const ahora = new Date();
   const horaDecimal = ahora.getHours() + ahora.getMinutes() / 60;
+  if (horaDecimal < 6 || horaDecimal > 18) return { generando: false };
 
-  if (horaDecimal < 6 || horaDecimal > 18) {
-    return { generando: false };
-  }
-
-  const anguloSolar = Math.PI * ((horaDecimal - 6) / 12);
-  const factorSolar = Math.max(0, Math.sin(anguloSolar));
+  const factorSolar = Math.max(0, Math.sin(Math.PI * ((horaDecimal - 6) / 12)));
   const factorClima = FACTORES_CLIMA[categoriaClima] ?? FACTORES_CLIMA.clear;
-
-  const TASA_DEGRADACION_ANUAL = 0.006;
   const añosDesdeInstalacion =
     (Date.now() - new Date(sistema.fechaInstalacion).getTime()) /
     (1000 * 60 * 60 * 24 * 365.25);
-  const factorDegradacion = Math.max(0, 1 - TASA_DEGRADACION_ANUAL * añosDesdeInstalacion);
-
+  const factorDegradacion = Math.max(0, 1 - 0.006 * añosDesdeInstalacion);
   const porcentaje = factorSolar * factorClima * factorDegradacion * 100;
-  const watts = sistema.capacidadInstalada * 1000 * (porcentaje / 100);
 
   return {
     generando: true,
     porcentaje: Math.round(porcentaje * 10) / 10,
-    watts: Math.round(watts),
+    watts: Math.round(sistema.capacidadInstalada * 1000 * porcentaje / 100),
   };
+}
+
+// Distancia entre dos coordenadas (fórmula de Haversine), para encontrar
+// la ciudad de Honduras más cercana a la ubicación GPS real del usuario.
+function distanciaKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function encontrarCiudadMasCercana(lat, lon, ciudades) {
+  let mejor = null;
+  let mejorDistancia = Infinity;
+  for (const ciudad of ciudades) {
+    const d = distanciaKm(lat, lon, ciudad.latitud, ciudad.longitud);
+    if (d < mejorDistancia) {
+      mejorDistancia = d;
+      mejor = ciudad;
+    }
+  }
+  return mejor;
 }
 
 function Dashboard({ usuario, onLogout, onIrASimular }) {
@@ -91,8 +106,59 @@ function Dashboard({ usuario, onLogout, onIrASimular }) {
   const [ubicacion, setUbicacion] = useState('');
   const [capacidadInstalada, setCapacidadInstalada] = useState('');
   const [fechaInstalacion, setFechaInstalacion] = useState('');
+  const [coordenadas, setCoordenadas] = useState({ latitud: null, longitud: null });
+
+  const [ciudadesHonduras, setCiudadesHonduras] = useState([]);
+  const [buscandoGps, setBuscandoGps] = useState(false);
+  const [errorGps, setErrorGps] = useState('');
+
+  useEffect(() => {
+    api
+      .get('/ciudades-honduras')
+      .then((res) => setCiudadesHonduras(res.data))
+      .catch(() => setCiudadesHonduras([]));
+  }, []);
+
+  const handleUsarUbicacionActual = async () => {
+    setErrorGps('');
+    if (!navigator.geolocation) {
+      setErrorGps('Tu navegador no soporta geolocalización. Elige una ciudad de la lista.');
+      return;
+    }
+    setBuscandoGps(true);
+    let ciudadesDisponibles = ciudadesHonduras;
+    if (ciudadesDisponibles.length === 0) {
+      try {
+        const res = await api.get('/ciudades-honduras');
+        ciudadesDisponibles = res.data;
+        setCiudadesHonduras(ciudadesDisponibles);
+      } catch (err) {
+        setErrorGps('No se pudieron cargar las ciudades. Elige una ciudad de la lista.');
+        setBuscandoGps(false);
+        return;
+      }
+    }
+    navigator.geolocation.getCurrentPosition(
+      (posicion) => {
+        const { latitude, longitude } = posicion.coords;
+        const ciudad = encontrarCiudadMasCercana(latitude, longitude, ciudadesDisponibles);
+        if (ciudad) {
+          setUbicacion(ciudad.nombre);
+          setCoordenadas({ latitud: latitude, longitud: longitude });
+        } else {
+          setErrorGps('No se encontró una ciudad cercana. Elige una de la lista.');
+        }
+        setBuscandoGps(false);
+      },
+      () => {
+        setErrorGps('No se dio acceso a la ubicación. Elige una ciudad de la lista.');
+        setBuscandoGps(false);
+      }
+    );
+  };
 
   const [detalleAbiertoId, setDetalleAbiertoId] = useState(null);
+  const [climaAbiertoId, setClimaAbiertoId] = useState(null);
   const [bateriasPorSistema, setBateriasPorSistema] = useState({});
   const [mostrarFormBateria, setMostrarFormBateria] = useState(null); // id del sistema con el form abierto
   const [codigoActivacion, setCodigoActivacion] = useState('');
@@ -100,8 +166,7 @@ function Dashboard({ usuario, onLogout, onIrASimular }) {
   const [fechaBateria, setFechaBateria] = useState('');
   const [errorBateria, setErrorBateria] = useState('');
 
-  const [climaReal, setClimaReal] = useState(null);
-  const [cargandoClimaReal, setCargandoClimaReal] = useState(true);
+  const [climasPorSistema, setClimasPorSistema] = useState({});
 
   const [horaActual, setHoraActual] = useState(new Date());
 
@@ -110,23 +175,20 @@ function Dashboard({ usuario, onLogout, onIrASimular }) {
     return () => clearInterval(intervalo);
   }, []);
 
-  const cargarClimaReal = async () => {
-    setCargandoClimaReal(true);
+  const cargarClimaDeSistema = async (sistema) => {
     try {
-      const res = await api.get('/clima-actual');
-      setClimaReal(res.data);
+      const res = await api.get('/clima-actual', {
+        params: {
+          ubicacion: sistema.ubicacion,
+          latitud: sistema.latitud,
+          longitud: sistema.longitud,
+        },
+      });
+      setClimasPorSistema((prev) => ({ ...prev, [sistema.id]: res.data }));
     } catch (err) {
-      setClimaReal(null);
-    } finally {
-      setCargandoClimaReal(false);
+      setClimasPorSistema((prev) => ({ ...prev, [sistema.id]: null }));
     }
   };
-
-  useEffect(() => {
-    cargarClimaReal();
-    const intervalo = setInterval(cargarClimaReal, 10 * 60 * 1000);
-    return () => clearInterval(intervalo);
-  }, []);
 
   const cargarSistemas = async () => {
     setCargando(true);
@@ -149,12 +211,13 @@ function Dashboard({ usuario, onLogout, onIrASimular }) {
     setUbicacion('');
     setCapacidadInstalada('');
     setFechaInstalacion('');
+    setCoordenadas({ latitud: null, longitud: null });
     setEditandoId(null);
     setMostrarForm(false);
   };
 
   const handleNuevoClick = () => {
-    if (mostrarForm && editandoId === null) {
+    if (mostrarForm) {
       limpiarFormulario();
     } else {
       limpiarFormulario();
@@ -165,6 +228,7 @@ function Dashboard({ usuario, onLogout, onIrASimular }) {
   const handleEditarClick = (sistema) => {
     setNombre(sistema.nombre);
     setUbicacion(sistema.ubicacion);
+    setCoordenadas({ latitud: sistema.latitud ?? null, longitud: sistema.longitud ?? null });
     setCapacidadInstalada(sistema.capacidadInstalada.toString());
     setFechaInstalacion(sistema.fechaInstalacion.split('T')[0]);
     setEditandoId(sistema.id);
@@ -189,12 +253,21 @@ function Dashboard({ usuario, onLogout, onIrASimular }) {
     e.preventDefault();
     setError('');
     try {
-      const datos = {
-        nombre,
-        ubicacion,
-        capacidadInstalada: parseFloat(capacidadInstalada),
-        fechaInstalacion,
-      };
+      const datos =
+        editandoId !== null
+          ? {
+              nombre,
+              capacidadInstalada: parseFloat(capacidadInstalada),
+              fechaInstalacion,
+            }
+          : {
+              nombre,
+              ubicacion,
+              latitud: coordenadas.latitud,
+              longitud: coordenadas.longitud,
+              capacidadInstalada: parseFloat(capacidadInstalada),
+              fechaInstalacion,
+            };
 
       if (editandoId !== null) {
         await api.put(`/sistemas/${editandoId}`, datos);
@@ -234,6 +307,18 @@ function Dashboard({ usuario, onLogout, onIrASimular }) {
     if (!(sistema.id in bateriasPorSistema)) {
       cargarBaterias(sistema.id);
     }
+    cargarClimaDeSistema(sistema);
+  };
+
+  const handleVerClima = async (sistema) => {
+    if (climaAbiertoId === sistema.id) {
+      setClimaAbiertoId(null);
+      return;
+    }
+    setClimaAbiertoId(sistema.id);
+    if (!(sistema.id in climasPorSistema)) {
+      cargarClimaDeSistema(sistema);
+    }
   };
 
   const handleAgregarBateria = async (e, sistemaId) => {
@@ -270,17 +355,6 @@ function Dashboard({ usuario, onLogout, onIrASimular }) {
     hour: '2-digit',
     minute: '2-digit',
   });
-
-  const horaDecimalActual = horaActual.getHours() + horaActual.getMinutes() / 60;
-  const horaEtiquetaActual =
-    horaDecimalActual >= 6 && horaDecimalActual <= 18
-      ? `${Math.round(horaDecimalActual)}:00`
-      : null;
-
-  const etiquetaClimaReal = climaReal
-    ? OPCIONES_CLIMA.find((o) => o.valor === climaReal.categoria)?.etiqueta ||
-      climaReal.categoria
-    : null;
 
   return (
     <div className="min-h-screen bg-slate-900 p-6">
@@ -324,14 +398,35 @@ function Dashboard({ usuario, onLogout, onIrASimular }) {
               required
               className="w-full px-4 py-2 rounded-lg bg-slate-700 text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-yellow-500"
             />
-            <input
-              type="text"
-              placeholder="Ubicación (ej. San Pedro Sula)"
-              value={ubicacion}
-              onChange={(e) => setUbicacion(e.target.value)}
-              required
-              className="w-full px-4 py-2 rounded-lg bg-slate-700 text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-yellow-500"
-            />
+            {editandoId === null && (
+              <div className="bg-slate-900/60 rounded-xl p-3 space-y-2">
+                <p className="text-slate-300 text-xs">Ciudad del sistema</p>
+                <button
+                  type="button"
+                  onClick={handleUsarUbicacionActual}
+                  disabled={buscandoGps}
+                  className="w-full py-2 rounded-lg bg-slate-700 text-white text-sm hover:bg-slate-600 transition disabled:opacity-50"
+                >
+                  {buscandoGps ? 'Detectando ubicación...' : '📍 Usar mi ubicación actual'}
+                </button>
+                {errorGps && <p className="text-red-400 text-xs">{errorGps}</p>}
+                <CiudadSelector
+                  ciudades={ciudadesHonduras}
+                  value={ubicacion}
+                  onChange={(valor) => {
+                    setUbicacion(valor);
+                    setCoordenadas({ latitud: null, longitud: null });
+                  }}
+                  onSelect={(ciudad) =>
+                    setCoordenadas({ latitud: ciudad.latitud, longitud: ciudad.longitud })
+                  }
+                  placeholder="Escribe para buscar una ciudad..."
+                />
+                {ubicacion && (
+                  <p className="text-emerald-400 text-xs">Ubicación elegida: {ubicacion}</p>
+                )}
+              </div>
+            )}
             <input
               type="number"
               step="0.1"
@@ -370,11 +465,19 @@ function Dashboard({ usuario, onLogout, onIrASimular }) {
             {sistemas.map((sistema) => {
               const detalleAbierto = detalleAbiertoId === sistema.id;
               const bateria = bateriasPorSistema[sistema.id];
-              const curvaDelDia =
-                detalleAbierto && climaReal
-                  ? calcularCurvaDelDia(sistema, climaReal.categoria)
-                  : [];
-
+              const climaDeEsteSistema = climasPorSistema[sistema.id];
+              const etiquetaClimaSistema = climaDeEsteSistema
+                ? OPCIONES_CLIMA.find((o) => o.valor === climaDeEsteSistema.categoria)
+                    ?.etiqueta || climaDeEsteSistema.categoria
+                : null;
+              const curvaDelDia = climaDeEsteSistema
+                ? calcularCurvaDelDia(sistema, climaDeEsteSistema.categoria)
+                : [];
+              const horaDecimalActual = horaActual.getHours() + horaActual.getMinutes() / 60;
+              const horaEtiquetaActual =
+                horaDecimalActual >= 6 && horaDecimalActual <= 18
+                  ? `${Math.round(horaDecimalActual)}:00`
+                  : null;
               return (
                 <div key={sistema.id} className="bg-slate-800 p-5 rounded-2xl">
                   <div className="flex justify-between items-center">
@@ -393,6 +496,12 @@ function Dashboard({ usuario, onLogout, onIrASimular }) {
                           className="text-xs text-red-400 hover:underline"
                         >
                           Eliminar
+                        </button>
+                        <button
+                          onClick={() => handleVerClima(sistema)}
+                          className="text-xs text-sky-400 hover:underline"
+                        >
+                          {climaAbiertoId === sistema.id ? 'Ocultar clima' : 'Ver clima'}
                         </button>
                         <button
                           onClick={() => handleVerDetalles(sistema)}
@@ -418,40 +527,74 @@ function Dashboard({ usuario, onLogout, onIrASimular }) {
                     </div>
                   </div>
 
-                  {detalleAbierto && (
-                    <div className="mt-4 pt-4 border-t border-slate-700 space-y-4">
-                      {climaReal ? (
+                  {climaAbiertoId === sistema.id && (
+                    <div className="mt-4 pt-4 border-t border-slate-700">
+                      {climaDeEsteSistema === undefined ? (
+                        <p className="text-slate-400 text-sm">Consultando clima...</p>
+                      ) : climaDeEsteSistema ? (
                         <div className="bg-slate-900/60 rounded-xl p-3">
-                          <div className="flex justify-between items-center mb-1 px-1">
+                          <div className="flex justify-between items-center">
                             <div>
-                              <p className="text-slate-400 text-xs">San Pedro Sula</p>
                               <p className="text-white text-sm font-semibold">
-                                {etiquetaClimaReal} · {climaReal.temperatura}°C
+                                {sistema.ubicacion}
+                              </p>
+                              <p className="text-slate-500 text-xs">
+                                Coordenadas: {sistema.latitud?.toFixed(5)}, {sistema.longitud?.toFixed(5)}
                               </p>
                             </div>
-                            <p className="text-slate-400 text-xs">{horaTexto}</p>
+                            <div className="text-right">
+                              <p className="text-slate-400 text-xs">Clima actual</p>
+                              <p className="text-white text-sm font-semibold">
+                                {etiquetaClimaSistema} · {climaDeEsteSistema.temperatura}°C
+                              </p>
+                              <p className="text-slate-500 text-xs">{horaTexto}</p>
+                            </div>
                           </div>
+                        </div>
+                      ) : (
+                        <p className="text-slate-500 text-sm">
+                          No se pudo obtener el clima de esta ubicación.
+                        </p>
+                      )}
+                    </div>
+                  )}
 
-                          <div className="flex justify-end px-1 mb-2">
+                  {detalleAbierto && (
+                    <div className="mt-4 pt-4 border-t border-slate-700 space-y-4">
+                      {climaDeEsteSistema ? (
+                        <div className="bg-slate-900/60 rounded-xl p-3">
+                          <div className="flex justify-between items-center mb-2">
+                            <div>
+                              <p className="text-white text-sm font-semibold">
+                                Eficiencia de paneles en tiempo real
+                              </p>
+                              <p className="text-slate-400 text-xs">
+                                {etiquetaClimaSistema} · {climaDeEsteSistema.temperatura}°C · {horaTexto}
+                              </p>
+                            </div>
                             {(() => {
-                              const estado = calcularEstadoActual(sistema, climaReal.categoria);
+                              const estado = calcularEstadoActual(sistema, climaDeEsteSistema.categoria);
                               return estado.generando ? (
-                                <p className="text-yellow-500 text-sm font-semibold">
-                                  {estado.porcentaje}% · ~{estado.watts} W ahora mismo
+                                <p className="text-yellow-500 text-sm font-semibold text-right">
+                                  {estado.porcentaje}% · {estado.watts} W
                                 </p>
                               ) : (
-                                <p className="text-slate-300 text-sm">
-                                  🌙 Sin generación (fuera de 6 a.m.–6 p.m.)
-                                </p>
+                                <p className="text-slate-400 text-xs text-right">Sin generación ahora</p>
                               );
                             })()}
                           </div>
-
-                          <ResponsiveContainer width="100%" height={180}>
+                          <ResponsiveContainer width="100%" height={210}>
                             <LineChart data={curvaDelDia}>
                               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                               <XAxis dataKey="hora" stroke="#94a3b8" fontSize={11} />
-                              <YAxis stroke="#94a3b8" fontSize={11} />
+                              <YAxis yAxisId="watts" stroke="#94a3b8" fontSize={11} />
+                              <YAxis
+                                yAxisId="eficiencia"
+                                orientation="right"
+                                stroke="#38bdf8"
+                                fontSize={11}
+                                unit="%"
+                              />
                               <Tooltip
                                 contentStyle={{
                                   backgroundColor: '#1e293b',
@@ -459,37 +602,43 @@ function Dashboard({ usuario, onLogout, onIrASimular }) {
                                   borderRadius: '8px',
                                   color: '#fff',
                                 }}
+                                formatter={(value, name) => [
+                                  name === 'watts' ? `${value} W` : `${value}%`,
+                                  name === 'watts' ? 'Generación' : 'Eficiencia',
+                                ]}
                               />
                               {horaEtiquetaActual && (
                                 <ReferenceLine
                                   x={horaEtiquetaActual}
                                   stroke="#38bdf8"
                                   strokeDasharray="4 4"
-                                  label={{
-                                    value: 'Ahora',
-                                    position: 'top',
-                                    fill: '#38bdf8',
-                                    fontSize: 11,
-                                  }}
+                                  label={{ value: 'Ahora', position: 'top', fill: '#38bdf8', fontSize: 11 }}
                                 />
                               )}
                               <Line
                                 type="monotone"
                                 dataKey="watts"
+                                yAxisId="watts"
                                 stroke="#eab308"
+                                strokeWidth={2}
+                                dot={false}
+                              />
+                              <Line
+                                type="monotone"
+                                dataKey="eficiencia"
+                                yAxisId="eficiencia"
+                                stroke="#38bdf8"
                                 strokeWidth={2}
                                 dot={false}
                               />
                             </LineChart>
                           </ResponsiveContainer>
                           <p className="text-slate-500 text-xs mt-1">
-                            Curva estimada del día con el clima real de hoy
+                            Curva calculada con clima, temperatura, capacidad y degradación del panel.
                           </p>
                         </div>
                       ) : (
-                        <p className="text-slate-500 text-sm">
-                          No se pudo obtener el clima real en este momento.
-                        </p>
+                        <p className="text-slate-400 text-sm">Consultando clima para calcular la eficiencia...</p>
                       )}
 
                       <div>

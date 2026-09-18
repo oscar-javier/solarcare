@@ -22,6 +22,8 @@ model Sistema {
   id                  Int       @id @default(autoincrement())
   nombre              String
   ubicacion           String
+  latitud             Float?
+  longitud            Float?
   capacidadInstalada  Float
   fechaInstalacion    DateTime
   createdAt           DateTime  @default(now())
@@ -49,4 +51,12 @@ model Lectura {
   createdAt  DateTime @default(now())
   sistemaId  Int
   sistema    Sistema  @relation(fields: [sistemaId], references: [id])
+}
+
+model CiudadHonduras {
+  id           Int    @id @default(autoincrement())
+  nombre       String
+  departamento String
+  latitud      Float
+  longitud     Float
 }

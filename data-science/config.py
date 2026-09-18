@@ -22,9 +22,14 @@ except Exception:
     load_dotenv = None
 
 # Carga .env si existe (útil para ejecutar localmente sin repetir variables en cada terminal)
-_env_path = Path(__file__).resolve().parent / ".env"
-if load_dotenv is not None and _env_path.exists():
-    load_dotenv(dotenv_path=_env_path, override=False)
+_env_paths = [
+    Path(__file__).resolve().parent / ".env",
+    Path(__file__).resolve().parent.parent / "backend" / ".env",
+]
+if load_dotenv is not None:
+    for _env_path in _env_paths:
+        if _env_path.exists():
+            load_dotenv(dotenv_path=_env_path, override=False)
 
 # --- Sistemas seleccionados (mismos 6 del pipeline original) ---
 SYSTEM_IDS = [10, 34, 1430, 2107, 9069, 1239]
@@ -36,8 +41,8 @@ S3_PREFIX_TEMPLATE = "pvdaq/csv/pvdata/system_id={system_id}/"
 # --- Ventana temporal a extraer ---
 # El bucket de PVDAQ no tiene el mismo periodo para todos los sistemas.
 # Para validar el ETL usamos un mes con datos reales para al menos un sistema.
-YEAR = 2010
-MONTH = 10
+YEAR_START = 2010
+YEAR_END = 2010
 
 # --- Ventana horaria de interés: 6am a 6pm inclusive ---
 HOUR_START = 6   # 06:00
@@ -86,5 +91,7 @@ DB_CONFIG = {
     "user": os.environ.get("PGUSER") or "postgres",
     "password": os.environ.get("PGPASSWORD") or "",
 }
+
+DATABASE_URL = os.environ.get("DIRECT_URL") or os.environ.get("DATABASE_URL")
 
 ANALYTICS_TABLE = "lectura_horaria"

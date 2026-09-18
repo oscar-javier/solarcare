@@ -17,6 +17,7 @@ Qué hace:
 
 import glob
 import os
+import re
 
 import pandas as pd
 import psycopg2
@@ -28,8 +29,9 @@ from config import (
     OUTPUT_DIR,
     DB_CONFIG,
     ANALYTICS_TABLE,
-    YEAR,
-    MONTH,
+    YEAR_START,
+    YEAR_END,
+    DATABASE_URL,
 )
 
 STANDARD_COLUMNS = ["ac_power", "poa_irradiance", "ambient_temp"]
@@ -81,7 +83,7 @@ def load_to_postgres(df: pd.DataFrame):
         print("Nada que cargar (dataframe vacío).")
         return
 
-    conn = psycopg2.connect(**DB_CONFIG)
+    conn = psycopg2.connect(DATABASE_URL) if DATABASE_URL else psycopg2.connect(**DB_CONFIG)
     try:
         with conn.cursor() as cur:
             cur.execute(f"""
@@ -95,17 +97,15 @@ def load_to_postgres(df: pd.DataFrame):
                 );
             """)
 
-            # Idempotencia: igual que simular-dia, borramos antes de insertar
-            # para poder re-correr el ETL sin duplicar filas.
+            # Idempotencia: reemplaza el rango anual para permitir reintentos.
             system_ids = df["system_id"].unique().tolist()
             cur.execute(
                 f"""
                 DELETE FROM {ANALYTICS_TABLE}
                 WHERE system_id = ANY(%s)
-                  AND EXTRACT(YEAR FROM timestamp) = %s
-                  AND EXTRACT(MONTH FROM timestamp) = %s
+                                    AND EXTRACT(YEAR FROM timestamp) BETWEEN %s AND %s
                 """,
-                (system_ids, YEAR, MONTH),
+                                (system_ids, YEAR_START, YEAR_END),
             )
 
             rows = [
@@ -135,14 +135,21 @@ def load_to_postgres(df: pd.DataFrame):
 
 
 def main():
-    raw_files = sorted(glob.glob(os.path.join(OUTPUT_DIR, "raw_*.csv")))
+    raw_pattern = os.path.join(
+        OUTPUT_DIR, f"raw_*_{YEAR_START}_{YEAR_END}.csv"
+    )
+    raw_files = sorted(glob.glob(raw_pattern))
     if not raw_files:
         print("No hay archivos raw_*.csv. Corre extract.py primero.")
         return
 
     all_hourly = []
     for path in raw_files:
-        system_id = int(os.path.basename(path).replace("raw_", "").replace(".csv", ""))
+        match = re.fullmatch(r"raw_(\d+)(?:_\d{4}_\d{4})?\.csv", os.path.basename(path))
+        if not match:
+            print(f"Ignorando archivo con nombre no reconocido: {path}")
+            continue
+        system_id = int(match.group(1))
         df = pd.read_csv(path)
 
         df = standardize_columns(df, system_id)
