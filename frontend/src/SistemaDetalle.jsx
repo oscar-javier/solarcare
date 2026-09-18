@@ -195,7 +195,7 @@ function SistemaDetalle({ sistemaId, onVolver }) {
             hour: '2-digit',
             minute: '2-digit',
           }),
-          watts: l.watts,
+          kw: Math.round((l.watts / 1000) * 100) / 100,
           porcentaje:
             Math.round((l.watts / (sistema.capacidadInstalada * 1000)) * 1000) / 10,
         }))
@@ -380,7 +380,7 @@ function SistemaDetalle({ sistemaId, onVolver }) {
                 <YAxis
                   stroke="#94a3b8"
                   fontSize={12}
-                  label={{ value: 'Watts', angle: -90, position: 'insideLeft', fill: '#94a3b8' }}
+                  label={{ value: 'kW', angle: -90, position: 'insideLeft', fill: '#94a3b8' }}
                 />
                 <Tooltip
                   contentStyle={{
@@ -390,13 +390,13 @@ function SistemaDetalle({ sistemaId, onVolver }) {
                     color: '#fff',
                   }}
                   formatter={(value, name, props) => [
-                    `${value} W (${props.payload.porcentaje}%)`,
+                    `${value} kW (${props.payload.porcentaje}%)`,
                     'Generación',
                   ]}
                 />
                 <Line
                   type="monotone"
-                  dataKey="watts"
+                  dataKey="kw"
                   stroke="#eab308"
                   strokeWidth={2}
                   dot={{ fill: '#eab308' }}

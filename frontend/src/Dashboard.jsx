@@ -43,7 +43,7 @@ function calcularCurvaDelDia(sistema, categoriaClima) {
     const watts = capacidadWatts * factorSolar * factorClima * factorDegradacion;
     return {
       hora: `${hora}:00`,
-      watts: Math.round(watts),
+      kw: Math.round((watts / 1000) * 100) / 100,
       eficiencia: Math.round((watts / capacidadWatts) * 1000) / 10,
     };
   });
@@ -609,16 +609,27 @@ function Dashboard({ usuario, onLogout, onIrASimular }) {
                               );
                             })()}
                           </div>
-                          <ResponsiveContainer width="100%" height={210}>
+                          <ResponsiveContainer width="100%" height={280}>
                             <LineChart data={curvaDelDia}>
                               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                               <XAxis dataKey="hora" stroke="#94a3b8" fontSize={11} />
-                              <YAxis yAxisId="watts" stroke="#94a3b8" fontSize={11} />
+                              <YAxis
+                                yAxisId="watts"
+                                stroke="#eab308"
+                                fontSize={11}
+                                domain={[0, sistema.capacidadInstalada]}
+                                tickCount={7}
+                                width={64}
+                                unit=" kW"
+                              />
                               <YAxis
                                 yAxisId="eficiencia"
                                 orientation="right"
-                                stroke="#38bdf8"
+                                stroke="#2563eb"
                                 fontSize={11}
+                                domain={[0, 100]}
+                                tickCount={6}
+                                width={42}
                                 unit="%"
                               />
                               <Tooltip
@@ -629,8 +640,8 @@ function Dashboard({ usuario, onLogout, onIrASimular }) {
                                   color: '#fff',
                                 }}
                                 formatter={(value, name) => [
-                                  name === 'watts' ? `${value} W` : `${value}%`,
-                                  name === 'watts' ? 'Generación' : 'Eficiencia',
+                                  name === 'kw' ? `${value} kW` : `${value}%`,
+                                  name === 'kw' ? 'Generación' : 'Eficiencia',
                                 ]}
                               />
                               {horaEtiquetaActual && (
@@ -661,7 +672,7 @@ function Dashboard({ usuario, onLogout, onIrASimular }) {
                               )}
                               <Line
                                 type="monotone"
-                                dataKey="watts"
+                                dataKey="kw"
                                 yAxisId="watts"
                                 stroke="#eab308"
                                 strokeWidth={2}
@@ -671,8 +682,8 @@ function Dashboard({ usuario, onLogout, onIrASimular }) {
                                 type="monotone"
                                 dataKey="eficiencia"
                                 yAxisId="eficiencia"
-                                stroke="#38bdf8"
-                                strokeWidth={2}
+                                stroke="#2563eb"
+                                strokeWidth={2.5}
                                 dot={false}
                               />
                             </LineChart>
