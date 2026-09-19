@@ -44,6 +44,11 @@ S3_PREFIX_TEMPLATE = "pvdaq/csv/pvdata/system_id={system_id}/"
 YEAR_START = 2010
 YEAR_END = 2010
 
+# Rango específico para sistemas cuyo periodo disponible es diferente al global.
+SYSTEM_YEAR_RANGES = {
+    1239: (2011, 2020),
+}
+
 # --- Ventana horaria de interés: 6am a 6pm inclusive ---
 HOUR_START = 6   # 06:00
 HOUR_END = 18    # 18:00 (inclusive)
@@ -67,6 +72,7 @@ COLUMN_MAP = {
         "ambient_temp": "ambient_temp_f__2688",
     },
     1430: {
+        "ac_power": "ac_power__5074",
         "poa_irradiance": "poa_irradiance__5041",
         "ambient_temp": "ambient_temp__5042",
     },

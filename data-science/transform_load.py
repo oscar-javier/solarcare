@@ -16,6 +16,7 @@ Qué hace:
 """
 
 import glob
+import math
 import os
 import re
 
@@ -35,6 +36,7 @@ from config import (
 )
 
 STANDARD_COLUMNS = ["ac_power", "poa_irradiance", "ambient_temp"]
+TIME_FEATURE_COLUMNS = ["sin_hora", "cos_hora", "sin_dia_anual", "cos_dia_anual"]
 
 
 def standardize_columns(df: pd.DataFrame, system_id: int) -> pd.DataFrame:
@@ -75,6 +77,15 @@ def resample_to_hourly(df: pd.DataFrame) -> pd.DataFrame:
         .reset_index()
     )
     hourly = hourly.rename(columns={RAW_TIMESTAMP_COL: "timestamp"})
+
+    timestamps = pd.to_datetime(hourly["timestamp"])
+    hora_decimal = timestamps.dt.hour + timestamps.dt.minute / 60
+    dia_del_año = timestamps.dt.dayofyear
+    dias_del_año = timestamps.dt.is_leap_year.astype(int) + 365
+    hourly["sin_hora"] = (hora_decimal * 2 * math.pi / 24).map(math.sin)
+    hourly["cos_hora"] = (hora_decimal * 2 * math.pi / 24).map(math.cos)
+    hourly["sin_dia_anual"] = (dia_del_año * 2 * math.pi / dias_del_año).map(math.sin)
+    hourly["cos_dia_anual"] = (dia_del_año * 2 * math.pi / dias_del_año).map(math.cos)
     return hourly
 
 
@@ -93,20 +104,34 @@ def load_to_postgres(df: pd.DataFrame):
                     ac_power DOUBLE PRECISION,
                     poa_irradiance DOUBLE PRECISION,
                     ambient_temp DOUBLE PRECISION,
+                    sin_hora DOUBLE PRECISION,
+                    cos_hora DOUBLE PRECISION,
+                    sin_dia_anual DOUBLE PRECISION,
+                    cos_dia_anual DOUBLE PRECISION,
                     PRIMARY KEY (system_id, timestamp)
                 );
             """)
 
-            # Idempotencia: reemplaza el rango anual para permitir reintentos.
-            system_ids = df["system_id"].unique().tolist()
-            cur.execute(
-                f"""
-                DELETE FROM {ANALYTICS_TABLE}
-                WHERE system_id = ANY(%s)
-                                    AND EXTRACT(YEAR FROM timestamp) BETWEEN %s AND %s
-                """,
-                                (system_ids, YEAR_START, YEAR_END),
-            )
+            for column in TIME_FEATURE_COLUMNS:
+                cur.execute(
+                    f"ALTER TABLE {ANALYTICS_TABLE} "
+                    f"ADD COLUMN IF NOT EXISTS {column} DOUBLE PRECISION"
+                )
+
+            # Idempotencia: reemplaza el rango temporal de cada sistema.
+            for system_id, system_df in df.groupby("system_id"):
+                cur.execute(
+                    f"""
+                    DELETE FROM {ANALYTICS_TABLE}
+                    WHERE system_id = %s
+                      AND timestamp BETWEEN %s AND %s
+                    """,
+                    (
+                        int(system_id),
+                        system_df["timestamp"].min(),
+                        system_df["timestamp"].max(),
+                    ),
+                )
 
             rows = [
                 (
@@ -115,6 +140,10 @@ def load_to_postgres(df: pd.DataFrame):
                     r.ac_power if "ac_power" in df.columns else None,
                     r.poa_irradiance if "poa_irradiance" in df.columns else None,
                     r.ambient_temp if "ambient_temp" in df.columns else None,
+                    r.sin_hora,
+                    r.cos_hora,
+                    r.sin_dia_anual,
+                    r.cos_dia_anual,
                 )
                 for r in df.itertuples(index=False)
             ]
@@ -123,7 +152,8 @@ def load_to_postgres(df: pd.DataFrame):
                 cur,
                 f"""
                 INSERT INTO {ANALYTICS_TABLE}
-                    (system_id, timestamp, ac_power, poa_irradiance, ambient_temp)
+                    (system_id, timestamp, ac_power, poa_irradiance, ambient_temp,
+                     sin_hora, cos_hora, sin_dia_anual, cos_dia_anual)
                 VALUES %s
                 """,
                 rows,
@@ -135,21 +165,28 @@ def load_to_postgres(df: pd.DataFrame):
 
 
 def main():
-    raw_pattern = os.path.join(
-        OUTPUT_DIR, f"raw_*_{YEAR_START}_{YEAR_END}.csv"
-    )
+    raw_pattern = os.path.join(OUTPUT_DIR, "raw_*_????_????.csv")
     raw_files = sorted(glob.glob(raw_pattern))
     if not raw_files:
         print("No hay archivos raw_*.csv. Corre extract.py primero.")
         return
 
-    all_hourly = []
+    # Usa el archivo de rango más amplio cuando hay extracciones parciales
+    # antiguas del mismo sistema.
+    files_by_system = {}
     for path in raw_files:
-        match = re.fullmatch(r"raw_(\d+)(?:_\d{4}_\d{4})?\.csv", os.path.basename(path))
+        match = re.fullmatch(r"raw_(\d+)_(\d{4})_(\d{4})\.csv", os.path.basename(path))
         if not match:
             print(f"Ignorando archivo con nombre no reconocido: {path}")
             continue
         system_id = int(match.group(1))
+        span = int(match.group(3)) - int(match.group(2))
+        current = files_by_system.get(system_id)
+        if current is None or span > current[0]:
+            files_by_system[system_id] = (span, path)
+
+    all_hourly = []
+    for system_id, (_, path) in sorted(files_by_system.items()):
         df = pd.read_csv(path)
 
         df = standardize_columns(df, system_id)
@@ -158,6 +195,9 @@ def main():
         print(f"[system {system_id}] {len(hourly)} filas horarias listas para cargar")
 
     final_df = pd.concat(all_hourly, ignore_index=True)
+    hourly_path = os.path.join(OUTPUT_DIR, "lectura_horaria.csv")
+    final_df.to_csv(hourly_path, index=False)
+    print(f"CSV horario guardado -> {hourly_path}")
     load_to_postgres(final_df)
 
 

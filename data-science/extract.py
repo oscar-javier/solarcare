@@ -30,6 +30,7 @@ from config import (
     HOUR_END,
     RAW_TIMESTAMP_COL,
     OUTPUT_DIR,
+    SYSTEM_YEAR_RANGES,
 )
 
 
@@ -45,14 +46,17 @@ def list_month_keys(s3_client, system_id: int, year: int, month: int) -> list[st
     filtramos por prefijo hasta el nivel de mes y dejamos que boto3 pagine.
     """
     prefix = S3_PREFIX_TEMPLATE.format(system_id=system_id)
-    month_prefix = f"{prefix}year={year}/month={month:02d}/"
-
     keys = []
     paginator = s3_client.get_paginator("list_objects_v2")
-    for page in paginator.paginate(Bucket=S3_BUCKET, Prefix=month_prefix):
-        for obj in page.get("Contents", []):
-            if obj["Key"].endswith(".csv"):
-                keys.append(obj["Key"])
+    month_prefixes = {
+        f"{prefix}year={year}/month={month:02d}/",
+        f"{prefix}year={year}/month={month}/",
+    }
+    for month_prefix in month_prefixes:
+        for page in paginator.paginate(Bucket=S3_BUCKET, Prefix=month_prefix):
+            for obj in page.get("Contents", []):
+                if obj["Key"].endswith(".csv") and obj["Key"] not in keys:
+                    keys.append(obj["Key"])
 
     if not keys:
         print(
@@ -87,7 +91,8 @@ def filter_daylight_window(df: pd.DataFrame) -> pd.DataFrame:
 
 def extract_system(s3_client, system_id: int) -> pd.DataFrame:
     frames = []
-    for year in range(YEAR_START, YEAR_END + 1):
+    year_start, year_end = SYSTEM_YEAR_RANGES.get(system_id, (YEAR_START, YEAR_END))
+    for year in range(year_start, year_end + 1):
         for month in range(1, 13):
             print(f"[system {system_id}] listando archivos de {year}-{month:02d}...")
             keys = list_month_keys(s3_client, system_id, year, month)
@@ -120,7 +125,8 @@ def main():
         if df.empty:
             continue
 
-        out_path = f"{OUTPUT_DIR}/raw_{system_id}_{YEAR_START}_{YEAR_END}.csv"
+        year_start, year_end = SYSTEM_YEAR_RANGES.get(system_id, (YEAR_START, YEAR_END))
+        out_path = f"{OUTPUT_DIR}/raw_{system_id}_{year_start}_{year_end}.csv"
         df.to_csv(out_path, index=False)
         print(f"  [system {system_id}] guardado -> {out_path}\n")
 
