@@ -1,0 +1,9 @@
+system_id,feature,metric_id,raw_units,units,calc_scale,calc_offset,canonical_units
+10,poa_irradiance_W_m2,421,W/m^2,W/m^2,1,0,W/m^2
+10,ambient_temp_C,428,C,C,1,0,C
+34,poa_irradiance_W_m2,2679,W/m^2,W/m^2,1,0,W/m^2
+34,ambient_temp_C,2688,F,F,1,0,C
+1239,poa_irradiance_W_m2,3018,W/m^2,W/m^2,1,0,W/m^2
+1239,ambient_temp_C,3016,F,F,1,0,C
+1430,poa_irradiance_W_m2,5041,W/m^2,W/m^2,1,0,W/m^2
+1430,ambient_temp_C,5042,C,C,1,0,C

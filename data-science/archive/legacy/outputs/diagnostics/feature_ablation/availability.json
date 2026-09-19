@@ -1,0 +1,40 @@
+{
+  "A_with_geography": {
+    "available": true,
+    "features": [
+      "poa_irradiance_W_m2",
+      "ambient_temp_C",
+      "sin_hour",
+      "cos_hour",
+      "sin_day_of_year",
+      "cos_day_of_year",
+      "latitude",
+      "longitude",
+      "elevation"
+    ]
+  },
+  "B_without_geography": {
+    "available": true,
+    "features": [
+      "poa_irradiance_W_m2",
+      "ambient_temp_C",
+      "sin_hour",
+      "cos_hour",
+      "sin_day_of_year",
+      "cos_day_of_year"
+    ]
+  },
+  "C_GHI_DNI_DHI": {
+    "available": false,
+    "features": [
+      "GHI",
+      "DNI",
+      "DHI",
+      "ambient_temp_C",
+      "sin_hour",
+      "cos_hour",
+      "sin_day_of_year",
+      "cos_day_of_year"
+    ]
+  }
+}

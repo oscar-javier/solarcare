@@ -1,0 +1,2 @@
+baseline_mae,baseline_rmse,baseline_r2,model_mae,model_rmse,model_r2,mae_w,rmse_w,r2_w,n_train,n_test,capacity_source,target_mode,model_kind,experiment,train_systems,test_systems
+241.4655954842778,274.9108047985949,-0.012078795674611564,21592.73000566043,26000.74740782661,-9052.205361051008,400545.14160500106,482313.8644151836,-9052.205361051007,7477,2470,dc_capacity,normalized_power,polynomial_linear,grouped_system_holdout,"[10, 34, 1430]",[1239]

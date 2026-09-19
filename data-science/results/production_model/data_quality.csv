@@ -1,0 +1,5 @@
+system_id,rows,duplicate_timestamps,negative_ac_power_rows,ac_power_above_capacity_rows,negative_poa_rows,missing_poa_rows,missing_temperature_rows,nighttime_power_rows,timestamp_start,timestamp_end
+10,4492,0,833,4,413,0,0,30,2010-01-11T06:00:00,2010-12-31T18:00:00
+34,1692,0,316,0,0,6,6,0,2010-08-23T11:00:00,2010-12-31T18:00:00
+1239,41701,0,2273,0,0,5,5,561,2011-09-19T06:00:00,2020-07-26T17:00:00
+1430,2346,0,0,0,0,0,0,0,2010-01-03T06:00:00,2010-12-31T18:00:00

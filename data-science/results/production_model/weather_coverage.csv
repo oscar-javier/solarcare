@@ -1,0 +1,5 @@
+system_id,pvdaq_rows,matched_rows,match_pct,discarded_rows,timezone,matching_tolerance
+10,4492,4492,100.0,0,America/Denver,30min
+34,1393,1393,100.0,0,America/Los_Angeles,30min
+1239,2470,2470,100.0,0,America/New_York,30min
+1430,1592,1592,100.0,0,America/Denver,30min

@@ -1,0 +1,18 @@
+{
+  "modelo": "regresion_lineal_multivariante_grado_2",
+  "objetivo": "eficiencia",
+  "predictores": [
+    "poa_irradiance",
+    "ambient_temp",
+    "sin_hora",
+    "cos_hora",
+    "sin_dia_anual",
+    "cos_dia_anual"
+  ],
+  "registros": 49927,
+  "entrenamiento": 39939,
+  "prueba": 9988,
+  "r2": 0.31872329636234,
+  "rmse_eficiencia": 194.63973179320135,
+  "rmse_ac_power": 3526.5162746376373
+}

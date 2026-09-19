@@ -1,0 +1,11 @@
+{
+  "rows_input": 10246,
+  "rows_valid": 9947,
+  "rows_removed": 299,
+  "systems": [
+    10,
+    34,
+    1239,
+    1430
+  ]
+}

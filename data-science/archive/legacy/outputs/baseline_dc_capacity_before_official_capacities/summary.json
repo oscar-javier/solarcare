@@ -1,0 +1,186 @@
+{
+  "data_quality": {
+    "original_rows": 10246,
+    "filtered_rows": 9947,
+    "removed_rows": 299,
+    "systems": [
+      10,
+      34,
+      1239,
+      1430
+    ],
+    "time_range": {
+      "start": "2010-01-03T06:00:00",
+      "end": "2019-10-07T18:00:00"
+    }
+  },
+  "capacity_source": "dc_capacity",
+  "capacity_map": {
+    "10": 1.12,
+    "34": 1.14,
+    "1239": 18.55,
+    "1430": 0.332
+  },
+  "loso": [
+    {
+      "baseline_mae": 280.5393638637102,
+      "baseline_rmse": 310.6655680529372,
+      "baseline_r2": -0.02404748868542228,
+      "model_mae": 99.89199634061696,
+      "model_rmse": 471.3894893557178,
+      "model_r2": -1.3577276829639855,
+      "mae_w": 111.87903590149101,
+      "rmse_w": 527.9562280784039,
+      "r2_w": -1.357727682963985,
+      "n_train": 5455,
+      "n_test": 4492,
+      "capacity_source": "dc_capacity",
+      "target_mode": "normalized_power",
+      "model_kind": "polynomial_linear",
+      "experiment": "leave_one_system_out",
+      "train_systems": [
+        34,
+        1239,
+        1430
+      ],
+      "test_systems": [
+        10
+      ]
+    },
+    {
+      "baseline_mae": 289.5866884060765,
+      "baseline_rmse": 318.7976224536822,
+      "baseline_r2": -0.0005936014579612792,
+      "model_mae": 5995.279552225485,
+      "model_rmse": 7484.179638780183,
+      "model_r2": -550.4624930841849,
+      "mae_w": 6834.618689537052,
+      "rmse_w": 8531.964788209407,
+      "r2_w": -550.4624930841849,
+      "n_train": 8554,
+      "n_test": 1393,
+      "capacity_source": "dc_capacity",
+      "target_mode": "normalized_power",
+      "model_kind": "polynomial_linear",
+      "experiment": "leave_one_system_out",
+      "train_systems": [
+        10,
+        1239,
+        1430
+      ],
+      "test_systems": [
+        34
+      ]
+    },
+    {
+      "baseline_mae": 241.4655954842778,
+      "baseline_rmse": 274.9108047985949,
+      "baseline_r2": -0.012078795674611564,
+      "model_mae": 21592.73000566043,
+      "model_rmse": 26000.74740782661,
+      "model_r2": -9052.205361051008,
+      "mae_w": 400545.14160500106,
+      "rmse_w": 482313.8644151836,
+      "r2_w": -9052.205361051007,
+      "n_train": 7477,
+      "n_test": 2470,
+      "capacity_source": "dc_capacity",
+      "target_mode": "normalized_power",
+      "model_kind": "polynomial_linear",
+      "experiment": "leave_one_system_out",
+      "train_systems": [
+        10,
+        34,
+        1430
+      ],
+      "test_systems": [
+        1239
+      ]
+    },
+    {
+      "baseline_mae": 311.43563100972534,
+      "baseline_rmse": 359.75860318658954,
+      "baseline_r2": -0.167762723906681,
+      "model_mae": 158.30491386566183,
+      "model_rmse": 199.81291647661854,
+      "model_r2": 0.639770438858589,
+      "mae_w": 52.557231403399726,
+      "rmse_w": 66.33788827023736,
+      "r2_w": 0.639770438858589,
+      "n_train": 8355,
+      "n_test": 1592,
+      "capacity_source": "dc_capacity",
+      "target_mode": "normalized_power",
+      "model_kind": "polynomial_linear",
+      "experiment": "leave_one_system_out",
+      "train_systems": [
+        10,
+        34,
+        1239
+      ],
+      "test_systems": [
+        1430
+      ]
+    }
+  ],
+  "grouped_holdout": [
+    {
+      "baseline_mae": 241.4655954842778,
+      "baseline_rmse": 274.9108047985949,
+      "baseline_r2": -0.012078795674611564,
+      "model_mae": 21592.73000566043,
+      "model_rmse": 26000.74740782661,
+      "model_r2": -9052.205361051008,
+      "mae_w": 400545.14160500106,
+      "rmse_w": 482313.8644151836,
+      "r2_w": -9052.205361051007,
+      "n_train": 7477,
+      "n_test": 2470,
+      "capacity_source": "dc_capacity",
+      "target_mode": "normalized_power",
+      "model_kind": "polynomial_linear",
+      "experiment": "grouped_system_holdout",
+      "train_systems": [
+        10,
+        34,
+        1430
+      ],
+      "test_systems": [
+        1239
+      ]
+    }
+  ],
+  "final_model": {
+    "model_type": "PolynomialFeatures+StandardScaler+LinearRegression",
+    "degree": 2,
+    "target": "normalized_power",
+    "capacity_source": "dc_capacity",
+    "features": [
+      "latitude",
+      "longitude",
+      "elevation",
+      "poa_irradiance",
+      "ambient_temp",
+      "sin_hour",
+      "cos_hour",
+      "sin_day_of_year",
+      "cos_day_of_year"
+    ],
+    "training_systems": [
+      10,
+      34,
+      1239,
+      1430
+    ],
+    "weather_source_training": "PVDAQ",
+    "weather_source_inference": "Open-Meteo",
+    "created_at": "2026-09-19T09:50:39.558653+00:00",
+    "version": "final_pv_v1",
+    "capacity_used_per_system": {
+      "10": 1.12,
+      "34": 1.14,
+      "1239": 18.55,
+      "1430": 0.332
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "model_features": [
+    "latitude",
+    "longitude",
+    "elevation",
+    "poa_irradiance_W_m2",
+    "ambient_temp_C",
+    "sin_hour",
+    "cos_hour",
+    "sin_day_of_year",
+    "cos_day_of_year"
+  ],
+  "audit_features": [
+    "poa_irradiance_W_m2",
+    "ambient_temp_C",
+    "sin_hour",
+    "cos_hour",
+    "sin_day_of_year",
+    "cos_day_of_year",
+    "dc_capacity_kW"
+  ],
+  "clipping_applied": false,
+  "artifacts_modified": false
+}

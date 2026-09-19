@@ -1,0 +1,86 @@
+{
+  "metadata_source": "systems_2025...",
+  "features": [
+    "ghi_W_m2",
+    "dni_W_m2",
+    "dhi_W_m2",
+    "ambient_temp_C",
+    "solar_zenith_deg",
+    "solar_elevation_deg",
+    "solar_azimuth_deg",
+    "tilt_deg",
+    "azimuth_deg",
+    "tracking_is_single_axis",
+    "poa_synthetic_W_m2",
+    "poa_beam_W_m2",
+    "poa_sky_diffuse_W_m2",
+    "poa_ground_diffuse_W_m2",
+    "sin_hour",
+    "cos_hour",
+    "sin_day_of_year",
+    "cos_day_of_year"
+  ],
+  "target": "ac_power_W / (dc_capacity_kW * 1000)",
+  "model": "random_forest",
+  "strategy": "daylight_model_night_zero",
+  "daylight_definition": "solar_elevation_deg > 0 and poa_synthetic_W_m2 > 20.0",
+  "systems": [
+    10,
+    34,
+    1239,
+    1430
+  ],
+  "system_configurations": [
+    {
+      "system_id": 10,
+      "latitude": 39.7404,
+      "longitude": -105.1774,
+      "elevation_m": 1792.8,
+      "dc_capacity_kW": 1.12,
+      "azimuth_deg": 180.0,
+      "tilt_deg": 40.0,
+      "tracking_type": "fixed",
+      "timezone": "America/Denver",
+      "metadata_source": "systems_2025..."
+    },
+    {
+      "system_id": 34,
+      "latitude": 36.1952,
+      "longitude": -115.1582,
+      "elevation_m": 620.0,
+      "dc_capacity_kW": 146.64,
+      "azimuth_deg": 180.0,
+      "tilt_deg": 11.2,
+      "tracking_type": "fixed",
+      "timezone": "America/Los_Angeles",
+      "metadata_source": "systems_2025..."
+    },
+    {
+      "system_id": 1239,
+      "latitude": 46.6704,
+      "longitude": -68.0178,
+      "elevation_m": 197.0,
+      "dc_capacity_kW": 20.16,
+      "azimuth_deg": 155.0,
+      "tilt_deg": 10.0,
+      "tracking_type": "fixed",
+      "timezone": "America/New_York",
+      "metadata_source": "systems_2025..."
+    },
+    {
+      "system_id": 1430,
+      "latitude": 39.7438,
+      "longitude": -105.1779,
+      "elevation_m": 1831.0,
+      "dc_capacity_kW": 720.72,
+      "azimuth_deg": 180.0,
+      "tilt_deg": 0.0,
+      "tracking_type": "single_axis",
+      "timezone": "America/Denver",
+      "metadata_source": "systems_2025..."
+    }
+  ],
+  "weather_source": "Open-Meteo archive cached locally",
+  "timezone_matching": "PVDAQ local timestamp matched to Open-Meteo local hourly timestamp with merge_asof tolerance 30min",
+  "tracking": "pvlib.tracking.singleaxis(axis_tilt=0, axis_azimuth=official azimuth, backtrack=True, gcr=0.4)"
+}

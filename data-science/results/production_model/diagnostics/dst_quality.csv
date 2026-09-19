@@ -1,0 +1,9 @@
+system_id,timezone,transition,rows,duplicated_local,min,max
+10,America/Denver,spring,26,0,2010-03-14T06:00:00-06:00,2010-03-15T18:00:00-06:00
+10,America/Denver,autumn,26,0,2010-11-07T06:00:00-07:00,2010-11-08T18:00:00-07:00
+34,America/Los_Angeles,spring,0,0,,
+34,America/Los_Angeles,autumn,0,0,,
+1239,America/New_York,spring,0,0,,
+1239,America/New_York,autumn,0,0,,
+1430,America/Denver,spring,13,0,2010-03-15T06:00:00-06:00,2010-03-15T18:00:00-06:00
+1430,America/Denver,autumn,0,0,,

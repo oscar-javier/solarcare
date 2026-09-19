@@ -1,0 +1,5 @@
+system_id,timezone,latitude,longitude,elevation_m,azimuth_deg,tilt_deg,tracking_type,dst_ambiguous_or_nonexistent_rows,localized_duplicate_rows,utc_ordered,utc_duplicate_rows,spring_sample_rows,autumn_sample_rows,spring_timestamps,spring_hour_values,autumn_timestamps,autumn_hour_values
+10,America/Denver,39.7404,-105.1774,1792.8,180.0,40.0,fixed,0,0,True,0,130,112,0,,0,
+34,America/Los_Angeles,36.1952,-115.1582,620.0,180.0,11.2,fixed,0,0,True,0,0,3,0,,0,
+1239,America/New_York,46.6704,-68.0178,197.0,155.0,10.0,fixed,0,0,True,0,0,0,0,,0,
+1430,America/Denver,39.7438,-105.1779,1831.0,180.0,0.0,single_axis,0,0,True,0,39,0,0,,0,

@@ -1,0 +1,39 @@
+{
+  "systems": [
+    10,
+    34,
+    1239,
+    1430
+  ],
+  "target": "ac_power_W / (dc_capacity_kW * 1000)",
+  "clipping_applied": false,
+  "final_artifacts_modified": false,
+  "cleaning_summary": {
+    "original_rows": 50231,
+    "filtered_rows": 9947,
+    "removed_rows": 40284,
+    "systems": [
+      10,
+      34,
+      1239,
+      1430
+    ],
+    "time_range": {
+      "start": "2010-01-03T06:00:00",
+      "end": "2019-10-07T18:00:00"
+    }
+  },
+  "model_c_availability": {
+    "available": false,
+    "features": [
+      "GHI",
+      "DNI",
+      "DHI",
+      "ambient_temp_C",
+      "sin_hour",
+      "cos_hour",
+      "sin_day_of_year",
+      "cos_day_of_year"
+    ]
+  }
+}

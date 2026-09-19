@@ -1,0 +1,14 @@
+metric_id,sensor_name,common_name,raw_units,units,calc_scale,calc_offset,calc_details,calc_applies_to_exported_value,quantity,canonical_units
+421,poa_irradiance,POA irradiance,W/m^2,W/m^2,1,0,PVDAQ exported calculated value is already in the declared units,true,irradiance,W/m^2
+422,dc_power,DC power,W,W,1,0,raw_value * calc_scale + calc_offset, true,power,W
+423,ac_power,AC power,W,W,1,0,raw_value * calc_scale + calc_offset, true,power,W
+428,ambient_temp,Ambient temperature,C,C,1,0,PVDAQ exported calculated value is already in the declared units,true,temperature,C
+2679,poa_irradiance,POA irradiance,W/m^2,W/m^2,1,0,PVDAQ exported calculated value is already in the declared units,true,irradiance,W/m^2
+2688,ambient_temp_f,Ambient temperature,F,F,1,0,PVDAQ exported calculated value is already in the declared units,true,temperature,C
+2695,ac_power_hW,AC power,hW,W,100,0,raw_value * calc_scale + calc_offset,true,power,W
+3015,ac_power_metered_kW,AC power,W,kW,1000,0,exported value is W; calc_scale converts physical kW to W and must not be applied again,false,power,W
+3016,ambient_temp_f,Ambient temperature,F,F,1,0,PVDAQ exported calculated value is already in the declared units,true,temperature,C
+3018,poa_irradiance,POA irradiance,W/m^2,W/m^2,1,0,PVDAQ exported calculated value is already in the declared units,true,irradiance,W/m^2
+5041,poa_irradiance,POA irradiance,W/m^2,W/m^2,1,0,PVDAQ exported calculated value is already in the declared units,true,irradiance,W/m^2
+5042,ambient_temp,Ambient temperature,C,C,1,0,PVDAQ exported calculated value is already in the declared units,true,temperature,C
+5074,ac_power,AC power,W,W,2000,0,raw_value * calc_scale + calc_offset,true,power,W

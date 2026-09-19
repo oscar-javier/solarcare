@@ -1,0 +1,19 @@
+feature,source
+ghi_W_m2,Open-Meteo
+dni_W_m2,Open-Meteo
+dhi_W_m2,Open-Meteo
+ambient_temp_C,Open-Meteo
+solar_zenith_deg,pvlib solarposition
+solar_elevation_deg,pvlib solarposition
+solar_azimuth_deg,pvlib solarposition
+tilt_deg,official systems_2025 metadata
+azimuth_deg,official systems_2025 metadata
+tracking_is_single_axis,official systems_2025 metadata
+poa_synthetic_W_m2,pvlib get_total_irradiance
+poa_beam_W_m2,pvlib get_total_irradiance
+poa_sky_diffuse_W_m2,pvlib get_total_irradiance
+poa_ground_diffuse_W_m2,pvlib get_total_irradiance
+sin_hour,timestamp
+cos_hour,timestamp
+sin_day_of_year,timestamp
+cos_day_of_year,timestamp

@@ -1,0 +1,5 @@
+system_id,pvdaq_rows,duplicate_system_timestamp_target_rows,duplicate_timestamp_rows,pvdaq_sorted,pvdaq_frequency_mode_minutes,pvdaq_gap_count_over_2h,weather_rows,weather_sorted,weather_frequency_mode_minutes,matched_rows,match_pct,past_match_pct,future_match_pct,exact_match_pct,delta_min_minutes,delta_max_minutes,delta_abs_mean_minutes,delta_mean_minutes
+10,4492,0,0,True,60.0,349,8520,True,60.0,4492,100.0,0.0,0.0,100.0,0.0,0.0,0.0,0.0
+34,1393,0,0,True,60.0,111,3120,True,60.0,1393,100.0,0.0,0.0,100.0,0.0,0.0,0.0,0.0
+1239,2470,0,0,True,60.0,189,4560,True,60.0,2470,100.0,0.0,0.0,100.0,0.0,0.0,0.0,0.0
+1430,1592,0,0,True,60.0,124,5736,True,60.0,1592,100.0,0.0,0.0,100.0,0.0,0.0,0.0,0.0

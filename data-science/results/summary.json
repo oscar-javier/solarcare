@@ -1,0 +1,216 @@
+{
+  "data_quality": {
+    "original_rows": 50231,
+    "filtered_rows": 9947,
+    "removed_rows": 40284,
+    "systems": [
+      10,
+      34,
+      1239,
+      1430
+    ],
+    "time_range": {
+      "start": "2010-01-03T06:00:00",
+      "end": "2019-10-07T18:00:00"
+    }
+  },
+  "capacity_source": "dc_capacity",
+  "capacity_map": {
+    "10": 1.12,
+    "34": 146.64,
+    "1239": 20.16,
+    "1430": 720.72
+  },
+  "loso": [
+    {
+      "baseline_mae": 0.2733177207649203,
+      "baseline_rmse": 0.3070547579259517,
+      "baseline_r2": -0.0003811869663163936,
+      "y_test_min": -0.0019901964285714284,
+      "y_test_max": 1.0254136904761906,
+      "y_test_mean": 0.3203498957548109,
+      "prediction_min": -75.44972672530425,
+      "prediction_max": 1.0496115533397106,
+      "prediction_mean": 0.3531498757827417,
+      "model_mae": 0.09167711888418598,
+      "model_rmse": 1.1549554806917366,
+      "model_r2": -13.153516038721246,
+      "mae_w": 102.67837315028832,
+      "rmse_w": 1293.550138374745,
+      "r2_w": -13.153516038721248,
+      "n_train": 5455,
+      "n_test": 4492,
+      "capacity_source": "dc_capacity",
+      "target_mode": "normalized_power",
+      "model_kind": "polynomial_linear",
+      "experiment": "leave_one_system_out",
+      "train_systems": [
+        34,
+        1239,
+        1430
+      ],
+      "test_systems": [
+        10
+      ]
+    },
+    {
+      "baseline_mae": 0.2343028545278189,
+      "baseline_rmse": 0.25723957490088284,
+      "baseline_r2": -0.07794931622691559,
+      "y_test_min": -0.003409710856519367,
+      "y_test_max": 0.7786074740861975,
+      "y_test_mean": 0.26414995737004715,
+      "prediction_min": -9.71307074458816,
+      "prediction_max": 12.069796039934088,
+      "prediction_mean": -0.44013766570123625,
+      "model_mae": 4.071437260008899,
+      "model_rmse": 4.778667494874482,
+      "model_r2": -370.9943987968304,
+      "mae_w": 597035.559807705,
+      "rmse_w": 700743.801448394,
+      "r2_w": -370.99439879683035,
+      "n_train": 8554,
+      "n_test": 1393,
+      "capacity_source": "dc_capacity",
+      "target_mode": "normalized_power",
+      "model_kind": "polynomial_linear",
+      "experiment": "leave_one_system_out",
+      "train_systems": [
+        10,
+        1239,
+        1430
+      ],
+      "test_systems": [
+        34
+      ]
+    },
+    {
+      "baseline_mae": 0.22351817504510949,
+      "baseline_rmse": 0.2537416553700518,
+      "baseline_r2": -0.01837439838054311,
+      "y_test_min": -0.01711309523809524,
+      "y_test_max": 0.9201388888888888,
+      "y_test_mean": 0.2980168905168905,
+      "prediction_min": -43.70718261900739,
+      "prediction_max": 28.209896670830478,
+      "prediction_mean": -5.972179288455999,
+      "model_mae": 11.900187412386053,
+      "model_rmse": 14.661573712633135,
+      "model_r2": -3399.04849541734,
+      "mae_w": 239907.77823370285,
+      "rmse_w": 295577.32604668406,
+      "r2_w": -3399.04849541734,
+      "n_train": 7477,
+      "n_test": 2470,
+      "capacity_source": "dc_capacity",
+      "target_mode": "normalized_power",
+      "model_kind": "polynomial_linear",
+      "experiment": "leave_one_system_out",
+      "train_systems": [
+        10,
+        34,
+        1430
+      ],
+      "test_systems": [
+        1239
+      ]
+    },
+    {
+      "baseline_mae": 0.2859811238927681,
+      "baseline_rmse": 0.3294764736684206,
+      "baseline_r2": -0.15392621215210767,
+      "y_test_min": 0.0,
+      "y_test_max": 0.923604172910423,
+      "y_test_mean": 0.42471246146720393,
+      "prediction_min": -0.11317024863671266,
+      "prediction_max": 0.7393750242360124,
+      "prediction_mean": 0.338543626192186,
+      "model_mae": 0.12488809249548088,
+      "model_rmse": 0.1608744725866331,
+      "model_r2": 0.7248918270516602,
+      "mae_w": 90009.34602334298,
+      "rmse_w": 115945.44988263819,
+      "r2_w": 0.7248918270516602,
+      "n_train": 8355,
+      "n_test": 1592,
+      "capacity_source": "dc_capacity",
+      "target_mode": "normalized_power",
+      "model_kind": "polynomial_linear",
+      "experiment": "leave_one_system_out",
+      "train_systems": [
+        10,
+        34,
+        1239
+      ],
+      "test_systems": [
+        1430
+      ]
+    }
+  ],
+  "grouped_holdout": [
+    {
+      "baseline_mae": 0.22351817504510949,
+      "baseline_rmse": 0.2537416553700518,
+      "baseline_r2": -0.01837439838054311,
+      "y_test_min": -0.01711309523809524,
+      "y_test_max": 0.9201388888888888,
+      "y_test_mean": 0.2980168905168905,
+      "prediction_min": -43.70718261900739,
+      "prediction_max": 28.209896670830478,
+      "prediction_mean": -5.972179288455999,
+      "model_mae": 11.900187412386053,
+      "model_rmse": 14.661573712633135,
+      "model_r2": -3399.04849541734,
+      "mae_w": 239907.77823370285,
+      "rmse_w": 295577.32604668406,
+      "r2_w": -3399.04849541734,
+      "n_train": 7477,
+      "n_test": 2470,
+      "capacity_source": "dc_capacity",
+      "target_mode": "normalized_power",
+      "model_kind": "polynomial_linear",
+      "experiment": "grouped_system_holdout",
+      "train_systems": [
+        10,
+        34,
+        1430
+      ],
+      "test_systems": [
+        1239
+      ]
+    }
+  ],
+  "final_model": {
+    "model_type": "PolynomialFeatures+StandardScaler+LinearRegression",
+    "degree": 2,
+    "target": "normalized_power",
+    "capacity_source": "dc_capacity",
+    "features": [
+      "latitude",
+      "longitude",
+      "elevation",
+      "poa_irradiance_W_m2",
+      "ambient_temp_C",
+      "sin_hour",
+      "cos_hour",
+      "sin_day_of_year",
+      "cos_day_of_year"
+    ],
+    "training_systems": [
+      10,
+      34,
+      1239,
+      1430
+    ],
+    "weather_source_training": "PVDAQ",
+    "weather_source_inference": "Open-Meteo",
+    "created_at": "2026-09-19T10:56:02.589671+00:00",
+    "version": "final_pv_v1",
+    "capacity_used_per_system": {
+      "10": 1.12,
+      "34": 146.64,
+      "1239": 20.16,
+      "1430": 720.72
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "systems": [
+    10,
+    34,
+    1239,
+    1430
+  ],
+  "power_canonical_units": "W",
+  "feature_units": {
+    "poa_irradiance_W_m2": "W/m^2",
+    "ambient_temp_C": "C"
+  },
+  "source_catalog": "C:\\Users\\oscar\\OneDrive\\Documentos\\Escritorio\\visual studio\\solarcare\\data-science\\pvdaq_metrics.csv"
+}
