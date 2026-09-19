@@ -32,6 +32,5 @@ backend/.windsurf/
 backend/.agents/
 backend/skills-lock.json
 
-data-science/__pycache__/
-data-science/output/
+data-science/
 
