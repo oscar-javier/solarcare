@@ -2,7 +2,7 @@
 node_modules/
 
 # Variables de entorno (contienen datos sensibles)
-
+.env
 .env.local
 .env.*.local
 

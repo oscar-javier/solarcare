@@ -1,0 +1,20 @@
+{
+  "experiment": "regresion_conjunta_normalizada",
+  "degree": 2,
+  "predictors": [
+    "poa_irradiance",
+    "ambient_temp",
+    "sin_hora",
+    "cos_hora",
+    "sin_dia_anual",
+    "cos_dia_anual"
+  ],
+  "test_fraction": 0.2,
+  "train_max_used_for_normalization": {
+    "1239": 18550.0,
+    "1430": 332.82999975
+  },
+  "system_count": 2,
+  "n_train": 3250,
+  "n_test": 812
+}

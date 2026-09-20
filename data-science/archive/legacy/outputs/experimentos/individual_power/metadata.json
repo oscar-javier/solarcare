@@ -1,0 +1,35 @@
+{
+  "experiment": "regresion_individual_ac_power",
+  "models": [
+    {
+      "experiment": "regresion_individual_ac_power",
+      "system_id": 1239,
+      "degree": 2,
+      "predictors": [
+        "poa_irradiance",
+        "ambient_temp",
+        "sin_hora",
+        "cos_hora",
+        "sin_dia_anual",
+        "cos_dia_anual"
+      ],
+      "n_train": 1976,
+      "n_test": 494
+    },
+    {
+      "experiment": "regresion_individual_ac_power",
+      "system_id": 1430,
+      "degree": 2,
+      "predictors": [
+        "poa_irradiance",
+        "ambient_temp",
+        "sin_hora",
+        "cos_hora",
+        "sin_dia_anual",
+        "cos_dia_anual"
+      ],
+      "n_train": 1274,
+      "n_test": 318
+    }
+  ]
+}

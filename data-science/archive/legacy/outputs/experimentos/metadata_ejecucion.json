@@ -1,0 +1,124 @@
+{
+  "summary": {
+    "rows_input": 10246,
+    "rows_valid": 4062,
+    "rows_removed_nulls": 299,
+    "rows_removed_non_finite": 0,
+    "systems": [
+      1239,
+      1430
+    ]
+  },
+  "config": {
+    "predictors": [
+      "poa_irradiance",
+      "ambient_temp",
+      "sin_hora",
+      "cos_hora",
+      "sin_dia_anual",
+      "cos_dia_anual"
+    ],
+    "degree": 2,
+    "test_fraction": 0.2,
+    "systems": [
+      1239,
+      1430
+    ],
+    "dataset_path": "output\\lectura_horaria.csv",
+    "output_dir": "output\\experimentos"
+  },
+  "experiments": {
+    "joint_normalized": {
+      "experiment": "regresion_conjunta_normalizada",
+      "degree": 2,
+      "predictors": [
+        "poa_irradiance",
+        "ambient_temp",
+        "sin_hora",
+        "cos_hora",
+        "sin_dia_anual",
+        "cos_dia_anual"
+      ],
+      "test_fraction": 0.2,
+      "train_max_used_for_normalization": {
+        "1239": 18550.0,
+        "1430": 332.82999975
+      },
+      "system_count": 2,
+      "n_train": 3250,
+      "n_test": 812
+    },
+    "individual_normalized": {
+      "experiment": "regresion_individual_normalizada",
+      "models": [
+        {
+          "experiment": "regresion_individual_normalizada",
+          "system_id": 1239,
+          "degree": 2,
+          "predictors": [
+            "poa_irradiance",
+            "ambient_temp",
+            "sin_hora",
+            "cos_hora",
+            "sin_dia_anual",
+            "cos_dia_anual"
+          ],
+          "train_max_ac_power": 18550.0,
+          "n_train": 1976,
+          "n_test": 494
+        },
+        {
+          "experiment": "regresion_individual_normalizada",
+          "system_id": 1430,
+          "degree": 2,
+          "predictors": [
+            "poa_irradiance",
+            "ambient_temp",
+            "sin_hora",
+            "cos_hora",
+            "sin_dia_anual",
+            "cos_dia_anual"
+          ],
+          "train_max_ac_power": 332.82999975,
+          "n_train": 1274,
+          "n_test": 318
+        }
+      ]
+    },
+    "individual_power": {
+      "experiment": "regresion_individual_ac_power",
+      "models": [
+        {
+          "experiment": "regresion_individual_ac_power",
+          "system_id": 1239,
+          "degree": 2,
+          "predictors": [
+            "poa_irradiance",
+            "ambient_temp",
+            "sin_hora",
+            "cos_hora",
+            "sin_dia_anual",
+            "cos_dia_anual"
+          ],
+          "n_train": 1976,
+          "n_test": 494
+        },
+        {
+          "experiment": "regresion_individual_ac_power",
+          "system_id": 1430,
+          "degree": 2,
+          "predictors": [
+            "poa_irradiance",
+            "ambient_temp",
+            "sin_hora",
+            "cos_hora",
+            "sin_dia_anual",
+            "cos_dia_anual"
+          ],
+          "n_train": 1274,
+          "n_test": 318
+        }
+      ]
+    }
+  }
+}

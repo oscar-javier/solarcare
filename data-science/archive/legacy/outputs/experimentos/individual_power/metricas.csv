@@ -1,0 +1,3 @@
+experiment,system_id,target,scale,n_train,n_test,mae,rmse,r2,max_ac_power
+regresion_individual_ac_power,1239,ac_power,watts,1976,494,936.7435455838862,1336.434567024839,0.9075289736000522,15395.0
+regresion_individual_ac_power,1430,ac_power,watts,1274,318,18.552365036097466,22.311415956481742,0.9504650645168873,307.018333

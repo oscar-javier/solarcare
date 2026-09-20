@@ -1,0 +1,37 @@
+{
+  "experiment": "regresion_individual_normalizada",
+  "models": [
+    {
+      "experiment": "regresion_individual_normalizada",
+      "system_id": 1239,
+      "degree": 2,
+      "predictors": [
+        "poa_irradiance",
+        "ambient_temp",
+        "sin_hora",
+        "cos_hora",
+        "sin_dia_anual",
+        "cos_dia_anual"
+      ],
+      "train_max_ac_power": 18550.0,
+      "n_train": 1976,
+      "n_test": 494
+    },
+    {
+      "experiment": "regresion_individual_normalizada",
+      "system_id": 1430,
+      "degree": 2,
+      "predictors": [
+        "poa_irradiance",
+        "ambient_temp",
+        "sin_hora",
+        "cos_hora",
+        "sin_dia_anual",
+        "cos_dia_anual"
+      ],
+      "train_max_ac_power": 332.82999975,
+      "n_train": 1274,
+      "n_test": 318
+    }
+  ]
+}
